@@ -1,5 +1,7 @@
 package com.solace.spring.cloud.stream.binder.util;
 
+import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaderMeta;
+import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solacesystems.jcsmp.BytesMessage;
@@ -33,9 +35,13 @@ import org.springframework.util.SerializationUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class XMLMessageMapperTest {
 	@Spy
@@ -46,7 +52,7 @@ public class XMLMessageMapperTest {
 		MockitoAnnotations.initMocks(this);
 	}
 
-	private static Log logger = LogFactory.getLog(XMLMessageMapperTest.class);
+	private static final Log logger = LogFactory.getLog(XMLMessageMapperTest.class);
 
 	@Test
 	public void testMapSpringMessageToXMLMessage_ByteArray() throws Exception {
@@ -95,8 +101,8 @@ public class XMLMessageMapperTest {
 		Assert.assertEquals(testSpringMessage.getPayload(),
 				SerializationUtils.deserialize(((BytesMessage) xmlMessage).getData()));
 		Assert.assertThat(xmlMessage.getProperties().keySet(),
-				CoreMatchers.hasItem(XMLMessageMapper.JAVA_SERIALIZED_OBJECT_HEADER));
-		Assert.assertEquals(true, xmlMessage.getProperties().getBoolean(XMLMessageMapper.JAVA_SERIALIZED_OBJECT_HEADER));
+				CoreMatchers.hasItem(SolaceBinderHeaders.SERIALIZED_PAYLOAD));
+		Assert.assertEquals(true, xmlMessage.getProperties().getBoolean(SolaceBinderHeaders.SERIALIZED_PAYLOAD));
 		validateXMLMessage(xmlMessage, testSpringMessage);
 	}
 
@@ -244,7 +250,7 @@ public class XMLMessageMapperTest {
 		metadata.putString("test-header-1", "test-header-val-1");
 		metadata.putString("test-header-2", "test-header-val-2");
 		metadata.putString(MessageHeaders.CONTENT_TYPE, "application/x-java-serialized-object");
-		metadata.putBoolean(XMLMessageMapper.JAVA_SERIALIZED_OBJECT_HEADER, true);
+		metadata.putBoolean(SolaceBinderHeaders.SERIALIZED_PAYLOAD, true);
 		xmlMessage.setProperties(metadata);
 
 		Message<?> springMessage = xmlMessageMapper.map(xmlMessage);
@@ -328,7 +334,7 @@ public class XMLMessageMapperTest {
 		metadata.putString("test-header-1", "test-header-val-1");
 		metadata.putString("test-header-2", "test-header-val-2");
 		metadata.putString(MessageHeaders.CONTENT_TYPE, "application/x-java-serialized-object");
-		metadata.putBoolean(XMLMessageMapper.JAVA_SERIALIZED_OBJECT_HEADER, true);
+		metadata.putBoolean(SolaceBinderHeaders.SERIALIZED_PAYLOAD, true);
 		xmlMessage.setProperties(metadata);
 
 		Message<?> springMessage = xmlMessageMapper.map(xmlMessage, true);
@@ -375,10 +381,14 @@ public class XMLMessageMapperTest {
 		SDTMap sdtMap = xmlMessageMapper.map(new MessageHeaders(headers));
 
 		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(key));
-		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
+		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(SolaceBinderHeaders.SERIALIZED_HEADERS));
 		Assert.assertThat(sdtMap.keySet(), CoreMatchers.not(CoreMatchers.hasItem(BinderHeaders.TARGET_DESTINATION)));
 		Assert.assertEquals(value, SerializationUtils.deserialize(sdtMap.getBytes(key)));
-		Assert.assertEquals(true, sdtMap.getBoolean(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
+		SDTStream serializedHeaders = sdtMap.getStream(SolaceBinderHeaders.SERIALIZED_HEADERS);
+		Assert.assertTrue(serializedHeaders.hasRemaining());
+		Assert.assertEquals(key, serializedHeaders.readString());
+		Assert.assertEquals(MessageHeaders.ID, serializedHeaders.readString());
+		Assert.assertFalse(serializedHeaders.hasRemaining());
 	}
 
 	@Test
@@ -387,15 +397,17 @@ public class XMLMessageMapperTest {
 		SerializableFoo value = new SerializableFoo("abc123", "HOOPLA!");
 		SDTMap sdtMap = JCSMPFactory.onlyInstance().createMap();
 		sdtMap.putObject(key, SerializationUtils.serialize(value));
-		sdtMap.putBoolean(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key), true);
+		SDTStream serializedHeaders = JCSMPFactory.onlyInstance().createStream();
+		serializedHeaders.writeString(key);
+		sdtMap.putStream(SolaceBinderHeaders.SERIALIZED_HEADERS, serializedHeaders);
 
 		MessageHeaders messageHeaders = xmlMessageMapper.map(sdtMap);
 
 		Assert.assertThat(messageHeaders.keySet(), CoreMatchers.hasItem(key));
 		Assert.assertThat(messageHeaders.keySet(),
-				CoreMatchers.not(CoreMatchers.hasItem(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key))));
+				CoreMatchers.not(CoreMatchers.hasItem(SolaceBinderHeaders.SERIALIZED_HEADERS)));
 		Assert.assertEquals(value, messageHeaders.get(key));
-		Assert.assertNull(messageHeaders.get(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
+		Assert.assertNull(messageHeaders.get(SolaceBinderHeaders.SERIALIZED_HEADERS));
 	}
 
 	@Test
@@ -427,6 +439,8 @@ public class XMLMessageMapperTest {
 			logger.info(String.format("Iteration %s - XMLMessage to Message<?>:\n%s", i, xmlMessage));
 			springMessage = xmlMessageMapper.map(xmlMessage);
 			validateSpringMessage(springMessage, expectedXmlMessage);
+			Assert.assertTrue("Stream should be rewinded after being processed by the mapper",
+					xmlMessage.getProperties().getStream(SolaceBinderHeaders.SERIALIZED_HEADERS).hasRemaining());
 
 			// Update the expected default spring headers
 			springHeaders.put(MessageHeaders.ID, springMessage.getHeaders().getId());
@@ -450,16 +464,31 @@ public class XMLMessageMapperTest {
 
 		SDTMap metadata = xmlMessage.getProperties();
 
-		Assert.assertEquals(XMLMessageMapper.BINDER_VERSION, metadata.getString(XMLMessageMapper.BINDER_VERSION_HEADER));
+		Assert.assertEquals((Integer) XMLMessageMapper.MESSAGE_VERSION, metadata.getInteger(SolaceBinderHeaders.MESSAGE_VERSION));
+
+		Set<String> serializedHeaders = new HashSet<>();
+
+		if (metadata.containsKey(SolaceBinderHeaders.SERIALIZED_HEADERS)) {
+			SDTStream serializedHeaderStream = (SDTStream) metadata.get(SolaceBinderHeaders.SERIALIZED_HEADERS);
+			Assert.assertTrue(serializedHeaderStream.hasRemaining());
+			while (serializedHeaderStream.hasRemaining()) {
+				String serializedHeader = serializedHeaderStream.readString();
+				serializedHeaders.add(serializedHeader);
+				Assert.assertThat(metadata.keySet(), CoreMatchers.hasItem(serializedHeader));
+				if (expectedHeaders.containsKey(serializedHeader)) {
+					Assert.assertEquals(expectedHeaders.get(serializedHeader),
+							SerializationUtils.deserialize(metadata.getBytes(serializedHeader)));
+				} else {
+					Assert.assertNotNull(SerializationUtils.deserialize(metadata.getBytes(serializedHeader)));
+				}
+			}
+			serializedHeaderStream.rewind();
+		}
 
 		for (Map.Entry<String,Object> header : expectedHeaders.entrySet()) {
+			if (serializedHeaders.contains(header.getKey())) continue;
 			Assert.assertThat(metadata.keySet(), CoreMatchers.hasItem(header.getKey()));
-
-			Object actualValue = metadata.get(header.getKey());
-			if (metadata.containsKey(xmlMessageMapper.getIsHeaderSerializedMetadataKey(header.getKey()))) {
-				actualValue = SerializationUtils.deserialize(metadata.getBytes(header.getKey()));
-			}
-			Assert.assertEquals(header.getValue(), actualValue);
+			Assert.assertEquals(header.getValue(), metadata.get(header.getKey()));
 		}
 	}
 
@@ -470,12 +499,19 @@ public class XMLMessageMapperTest {
 	private void validateSpringMessage(Message<?> message, XMLMessage xmlMessage, SDTMap expectedHeaders) throws SDTException {
 		MessageHeaders messageHeaders = message.getHeaders();
 
-		for (String customHeaderName : XMLMessageMapper.BINDER_INTERNAL_HEADERS) {
+		List<String> nonReadableBinderHeaderMeta = SolaceBinderHeaderMeta.META
+				.entrySet()
+				.stream()
+				.filter(h -> !h.getValue().isReadable())
+				.map(Map.Entry::getKey)
+				.collect(Collectors.toList());
+
+		for (String customHeaderName : nonReadableBinderHeaderMeta) {
 			Assert.assertThat(messageHeaders.keySet(), CoreMatchers.not(CoreMatchers.hasItem(customHeaderName)));
 		}
 
 		for (String headerName : expectedHeaders.keySet()) {
-			if (XMLMessageMapper.BINDER_INTERNAL_HEADERS.contains(headerName)) continue;
+			if (nonReadableBinderHeaderMeta.contains(headerName)) continue;
 			Assert.assertEquals(expectedHeaders.get(headerName), messageHeaders.get(headerName));
 		}
 

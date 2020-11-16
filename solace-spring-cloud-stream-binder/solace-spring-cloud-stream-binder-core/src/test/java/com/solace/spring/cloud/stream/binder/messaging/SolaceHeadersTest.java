@@ -3,12 +3,14 @@ package com.solace.spring.cloud.stream.binder.messaging;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.springframework.messaging.MessageHeaders;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -18,6 +20,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.CoreMatchers.startsWithIgnoringCase;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -32,13 +35,13 @@ public class SolaceHeadersTest {
 	public Class<?> headersClass;
 
 	@Parameterized.Parameter(2)
-	public Class<? extends HeaderMeta> headersMetaClass;
+	public Map<String, ? extends HeaderMeta<?>> headersMeta;
 
 	@Parameterized.Parameters(name = "{0}")
 	public static Collection<?> headerSets() {
 		return Arrays.asList(new Object[][]{
-				{SolaceHeaders.class.getSimpleName(), SolaceHeaders.class, SolaceHeaders.Meta.class},
-				{SolaceBinderHeaders.class.getSimpleName(), SolaceBinderHeaders.class, SolaceBinderHeaders.Meta.class}
+				{SolaceHeaders.class.getSimpleName(), SolaceHeaders.class, SolaceHeaderMeta.META},
+				{SolaceBinderHeaders.class.getSimpleName(), SolaceBinderHeaders.class, SolaceBinderHeaderMeta.META}
 		});
 	}
 
@@ -102,34 +105,26 @@ public class SolaceHeadersTest {
 	@Test
 	public void testHeadersHaveMetaObjects() {
 		List<String> headers = getAllHeaders();
-		List<String> metaNames = Arrays.stream(headersMetaClass.getEnumConstants())
-				.map(HeaderMeta::getName)
-				.collect(Collectors.toList());
-
-		assertEquals(headersMetaClass.getEnumConstants().length, headers.size());
+		assertEquals(headersMeta.size(), headers.size());
 		for (String header : headers) {
-			assertThat(metaNames, hasItem(header));
+			assertThat(headersMeta.keySet(), hasItem(header));
 		}
 	}
 
 	@Test
 	public void testValidMeta() {
-		Arrays.stream(headersMetaClass.getEnumConstants())
+		headersMeta.values()
 				.forEach(m -> {
-					assertNotNull(m.getAccessLevel());
-					assertNotNull(m.getName());
 					assertNotNull(m.getType());
+					assertFalse(String.format("primitives not supported by %s", MessageHeaders.class.getSimpleName()),
+							m.getType().isPrimitive());
 				});
 	}
 
 	@Test
 	public void testUniqueMetaNames() {
-		List<String> metaNames = Arrays.stream(headersMetaClass.getEnumConstants())
-				.map(HeaderMeta::getName)
-				.collect(Collectors.toList());
-
-		assertEquals(String.join(", ", metaNames) + " does not have unique values",
-				metaNames.stream().distinct().count(), metaNames.size());
+		assertEquals(String.join(", ", headersMeta.keySet()) + " does not have unique values",
+				headersMeta.keySet().stream().distinct().count(), headersMeta.keySet().size());
 	}
 
 	private Field getPrefixField() throws NoSuchFieldException {
