@@ -4,7 +4,6 @@ import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaderMeta;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceHeaderMeta;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
-import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solacesystems.common.util.ByteArray;
 import com.solacesystems.jcsmp.BytesMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
@@ -42,15 +41,6 @@ public class XMLMessageMapper {
 	private static final JCSMPAcknowledgementCallbackFactory ackCallbackFactory = new JCSMPAcknowledgementCallbackFactory();
 	static final int MESSAGE_VERSION = 1;
 
-	public XMLMessage map(Message<?> message, SolaceProducerProperties producerProperties) {
-		XMLMessage xmlMessage = map(message);
-		xmlMessage.setDMQEligible(producerProperties.isMsgInternalDmqEligible());
-		if (producerProperties.getMsgTtl() != null) {
-			xmlMessage.setTimeToLive(producerProperties.getMsgTtl());
-		}
-		return xmlMessage;
-	}
-
 	public XMLMessage map(Message<?> message, SolaceConsumerProperties consumerProperties) {
 		XMLMessage xmlMessage = map(message);
 		if (consumerProperties.getRepublishedMsgTtl() != null) {
@@ -59,7 +49,7 @@ public class XMLMessageMapper {
 		return xmlMessage;
 	}
 
-	XMLMessage map(Message<?> message) {
+	public XMLMessage map(Message<?> message) {
 		XMLMessage xmlMessage;
 		Object payload = message.getPayload();
 		SDTMap metadata = map(message.getHeaders());

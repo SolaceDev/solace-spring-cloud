@@ -3,7 +3,6 @@ package com.solace.spring.cloud.stream.binder.util;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaderMeta;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
-import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solacesystems.jcsmp.BytesMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPFactory;
@@ -152,33 +151,6 @@ public class XMLMessageMapperTest {
 	public void testFailMapSpringMessageToXMLMessage_InvalidPayload() {
 		Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload(new Object()).build();
 		xmlMessageMapper.map(testSpringMessage);
-	}
-
-	@Test
-	public void testMapProducerSpringMessageToXMLMessage() {
-		String testPayload = "testPayload";
-		Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload(testPayload).build();
-
-		XMLMessage xmlMessage = xmlMessageMapper.map(testSpringMessage, new SolaceProducerProperties());
-		Mockito.verify(xmlMessageMapper).map(testSpringMessage);
-
-		Assert.assertFalse(xmlMessage.isDMQEligible());
-		Assert.assertEquals(0, xmlMessage.getTimeToLive());
-	}
-
-	@Test
-	public void testMapProducerSpringMessageToXMLMessage_WithProperties() {
-		String testPayload = "testPayload";
-		Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload(testPayload).build();
-		SolaceProducerProperties producerProperties = new SolaceProducerProperties();
-		producerProperties.setMsgInternalDmqEligible(true);
-		producerProperties.setMsgTtl(100L);
-
-		XMLMessage xmlMessage1 = xmlMessageMapper.map(testSpringMessage, producerProperties);
-		Mockito.verify(xmlMessageMapper).map(testSpringMessage);
-
-		Assert.assertTrue(xmlMessage1.isDMQEligible());
-		Assert.assertEquals(producerProperties.getMsgTtl().longValue(), xmlMessage1.getTimeToLive());
 	}
 
 	@Test

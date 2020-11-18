@@ -330,16 +330,6 @@ See [SolaceCommonProperties](../../solace-spring-cloud-stream-binder/solace-spri
         <p>The prefix property is not applied on these subscriptions.</p>
         <p>Default: Empty Map&lt;String,String[]&gt;</p>
     </dd>
-    <dt>msgTtl</dt>
-    <dd>
-        <p>The number of milliseconds before messages are discarded or moved to a Solace-internal Dead Message Queue.</p>
-        <p>Default: null</p>
-    </dd>
-    <dt>msgInternalDmqEligible</dt>
-    <dd>
-        <p>The DMQ here is not those which the binder creates when autoBindDmq is enabled, but instead, refers to the <a href="https://docs.solace.com/Configuring-and-Managing/Setting-Dead-Msg-Queues.htm">DMQ defined by the Solace message broker itself</a>.</p>
-        <p>Default: false</p>
-    </dd>
 </dl>
 
 ## Consumer Concurrency
