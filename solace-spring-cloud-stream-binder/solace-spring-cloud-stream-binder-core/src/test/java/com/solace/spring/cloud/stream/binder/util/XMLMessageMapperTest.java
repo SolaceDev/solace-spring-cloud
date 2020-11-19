@@ -366,12 +366,30 @@ public class XMLMessageMapperTest {
 		xmlMessageMapper.map(testSpringMessage);
 	}
 
-	@Test(expected = SolaceMessageConversionException.class)
+	@Test
 	public void testFailMapSpringMessageToXMLMessage_InvalidHeaderType() {
-		Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload("")
-				.setHeader(SolaceHeaders.APPLICATION_MESSAGE_ID, 1)
-				.build();
-		xmlMessageMapper.map(testSpringMessage);
+		Set<Map.Entry<String, ? extends HeaderMeta<?>>> writeableHeaders = Stream.of(
+					SolaceHeaderMeta.META.entrySet().stream(),
+					SolaceBinderHeaderMeta.META.entrySet().stream())
+				.flatMap(h -> h)
+				.filter(h -> h.getValue().isWritable())
+				.collect(Collectors.toSet());
+		assertNotEquals("Test header set was empty", 0, writeableHeaders.size());
+
+		for (Map.Entry<String, ? extends HeaderMeta<?>> header : writeableHeaders) {
+			Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload("")
+					.setHeader(header.getKey(), new Object())
+					.build();
+			try {
+				xmlMessageMapper.map(testSpringMessage);
+				fail(String.format("Expected message mapping to fail for header %s", header.getKey()));
+			} catch (SolaceMessageConversionException e) {
+				assertEquals(e.getMessage(), String.format(
+						"Message %s has an invalid value type for header %s. Expected %s but received %s.",
+						testSpringMessage.getHeaders().getId(), header.getKey(), header.getValue().getType(),
+						Object.class));
+			}
+		}
 	}
 
 	@Test
