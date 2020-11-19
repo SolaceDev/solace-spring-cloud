@@ -28,9 +28,6 @@ public final class SolaceBinderHeaders {
 	 * <p><b>Access:</b> Read</p>
 	 * <br>
 	 * <p>A static number set by the publisher to indicate the Spring Cloud Stream Solace message version.</p>
-	 *
-	 * <p>Primarily used internally by the binder for backwards-compatibility while consuming messages published
-	 * by older versions of the binder.</p>
 	 */
 	public static final String MESSAGE_VERSION = PREFIX + "messageVersion";
 
