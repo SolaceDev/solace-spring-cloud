@@ -59,11 +59,11 @@ public class SolaceHeaderMeta<T> implements HeaderMeta<T> {
 		return readAction;
 	}
 
-	@SuppressWarnings("unchecked")
 	public BiConsumer<XMLMessage, Object> getWriteAction() {
 		return (msg, value) -> {
 			if (type.isInstance(value)) {
-				writeAction.accept(msg, (T) value);
+				@SuppressWarnings("unchecked") T castedValue = (T) value;
+				writeAction.accept(msg, castedValue);
 			} else {
 				throw new IllegalArgumentException(String.format("Expected type %s, but got %s", type,
 						value.getClass()));

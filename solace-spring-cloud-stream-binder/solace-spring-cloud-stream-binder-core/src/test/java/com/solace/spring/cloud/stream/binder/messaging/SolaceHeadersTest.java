@@ -1,5 +1,13 @@
 package com.solace.spring.cloud.stream.binder.messaging;
 
+import com.solacesystems.jcsmp.Destination;
+import com.solacesystems.jcsmp.JCSMPFactory;
+import com.solacesystems.jcsmp.TextMessage;
+import com.solacesystems.jcsmp.XMLMessage;
+import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.math.RandomUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -15,8 +23,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.CoreMatchers.startsWithIgnoringCase;
 import static org.junit.Assert.assertEquals;
@@ -25,6 +37,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public class SolaceHeadersTest {
@@ -36,6 +49,8 @@ public class SolaceHeadersTest {
 
 	@Parameterized.Parameter(2)
 	public Map<String, ? extends HeaderMeta<?>> headersMeta;
+
+	private static final Log logger = LogFactory.getLog(SolaceHeadersTest.class);
 
 	@Parameterized.Parameters(name = "{0}")
 	public static Collection<?> headerSets() {
@@ -124,7 +139,97 @@ public class SolaceHeadersTest {
 	@Test
 	public void testUniqueMetaNames() {
 		assertEquals(String.join(", ", headersMeta.keySet()) + " does not have unique values",
-				headersMeta.keySet().stream().distinct().count(), headersMeta.keySet().size());
+				headersMeta.keySet().size(), headersMeta.keySet().stream().distinct().count());
+	}
+
+	@Test
+	public void testMetaReadActions() {
+		if (!(headersClass.equals(SolaceHeaders.class))) {
+			logger.info(String.format("Test does not apply to %s", headersClass.getSimpleName()));
+			return;
+		}
+
+		XMLMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
+		@SuppressWarnings("unchecked") Map<String, SolaceHeaderMeta<?>> solaceHeaderMeta =
+				(Map<String, SolaceHeaderMeta<?>>) headersMeta;
+
+		for (Map.Entry<String, SolaceHeaderMeta<?>> headerMeta : solaceHeaderMeta.entrySet()) {
+			if (!headerMeta.getValue().isReadable()) continue;
+			assertThat(headerMeta.getKey(), headerMeta.getValue().getReadAction().apply(xmlMessage),
+					anyOf(instanceOf(headerMeta.getValue().getType()), nullValue()));
+		}
+	}
+
+	@Test
+	public void testMetaWriteActions() throws Exception {
+		if (!(headersClass.equals(SolaceHeaders.class))) {
+			logger.info(String.format("Test does not apply to %s", headersClass.getSimpleName()));
+			return;
+		}
+
+		XMLMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
+		@SuppressWarnings("unchecked") Map<String, SolaceHeaderMeta<?>> solaceHeaderMeta =
+				(Map<String, SolaceHeaderMeta<?>>) headersMeta;
+
+		for (Map.Entry<String, SolaceHeaderMeta<?>> headerMeta : solaceHeaderMeta.entrySet()) {
+			if (!headerMeta.getValue().isWritable()) continue;
+
+			Class<?> type = headerMeta.getValue().getType();
+			Object value;
+			try {
+				if (Number.class.isAssignableFrom(type)) {
+					value = type.getConstructor(String.class).newInstance("" + RandomUtils.nextInt(100));
+				} else if (Boolean.class.isAssignableFrom(type)) {
+					value = true;
+				} else if (String.class.isAssignableFrom(type)) {
+					value = RandomStringUtils.randomAlphanumeric(10);
+				} else if (Destination.class.isAssignableFrom(type)) {
+					value = JCSMPFactory.onlyInstance().createQueue(RandomStringUtils.randomAlphanumeric(10));
+				} else if (byte[].class.isAssignableFrom(type)) {
+					value = RandomStringUtils.random(10).getBytes();
+				} else {
+					value = type.newInstance();
+				}
+			} catch (Exception e) {
+				throw new Exception(String.format("Failed to generate test value for %s", headerMeta.getKey()), e);
+			}
+
+			logger.info(String.format("Writing %s: %s", headerMeta.getKey(), value));
+			headerMeta.getValue().getWriteAction().accept(xmlMessage, value);
+
+			if (headerMeta.getValue().isReadable()) {
+				assertEquals(value, headerMeta.getValue().getReadAction().apply(xmlMessage));
+			} else {
+				logger.warn(String.format("No read action for header %s. Cannot validate that write operation worked",
+						headerMeta.getKey()));
+			}
+		}
+
+		logger.info("Message Dump:\n" + xmlMessage.dump(XMLMessage.MSGDUMP_FULL));
+		logger.info("Message String:\n" + xmlMessage.toString());
+	}
+
+	@Test
+	public void testFailMetaWriteActionsWithInvalidType() {
+		if (!(headersClass.equals(SolaceHeaders.class))) {
+			logger.info(String.format("Test does not apply to %s", headersClass.getSimpleName()));
+			return;
+		}
+
+		XMLMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
+		@SuppressWarnings("unchecked") Map<String, SolaceHeaderMeta<?>> solaceHeaderMeta =
+				(Map<String, SolaceHeaderMeta<?>>) headersMeta;
+
+		for (Map.Entry<String, SolaceHeaderMeta<?>> headerMeta : solaceHeaderMeta.entrySet()) {
+			if (!headerMeta.getValue().isWritable()) continue;
+			try {
+				headerMeta.getValue().getWriteAction().accept(xmlMessage, new Object());
+				fail(String.format("Expected write action to fail for header %s", headerMeta.getKey()));
+			} catch (IllegalArgumentException e) {
+				assertThat(e.getMessage(), containsString(String.format("Expected type %s, but got %s",
+						headerMeta.getValue().getType(), Object.class)));
+			}
+		}
 	}
 
 	private Field getPrefixField() throws NoSuchFieldException {
