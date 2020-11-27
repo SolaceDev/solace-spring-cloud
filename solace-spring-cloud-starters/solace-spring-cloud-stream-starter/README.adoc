@@ -1,6 +1,16 @@
 = Spring Cloud Stream Binder for Solace PubSub+
 :revnumber: 2.1.1
 :toc: preamble
+:icons: font
+
+// Github-Specific Settings
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
 
 An implementation of Spring's Cloud Stream Binder for integrating with Solace PubSub+ message brokers. The Spring Cloud Stream Binder project provides a higher-level abstraction towards messaging that standardizes the development of distributed message-based systems.
 
@@ -30,6 +40,7 @@ This project extends the Spring Cloud Stream Binder project. If you are new to S
 
 The following is a brief excerpt from that document:
 
+[quote, 'https://docs.spring.io/spring-cloud-stream/docs/3.0.8.RELEASE/reference/html/spring-cloud-stream.html#spring-cloud-stream-overview-introducing[Introducing Spring Cloud Stream – Spring Cloud Stream Reference]']
 ____
 Spring Cloud Stream is a framework for building message-driven microservice applications. Spring Cloud Stream builds upon Spring Boot to create standalone, production-grade Spring applications and uses Spring Integration to provide connectivity to message brokers. It provides opinionated configuration of middleware from several vendors, introducing the concepts of persistent publish-subscribe semantics, consumer groups, and partitions.
 ____
@@ -122,6 +133,8 @@ Notice that the latter half of this configuration actually originates from the h
 
 == Configuration Options
 
+=== Solace Binder Configuration Options
+
 Configuration of the Solace Spring Cloud Stream Binder is done through https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html[Spring Boot's externalized configuration]. This is where users can control the binder's configuration options as well as the Solace Java API properties.
 
 === Inherited Configuration Options
@@ -129,8 +142,6 @@ Configuration of the Solace Spring Cloud Stream Binder is done through https://d
 As for auto-configuration-related options required for auto-connecting to Solace message brokers, refer to the https://github.com/SolaceProducts/solace-java-spring-boot#configure-the-application-to-use-your-solace-pubsub-service-credentials[JCSMP Spring Boot Auto-Configuration documentation].
 
 For general binder configuration options and properties, refer to the https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#_configuration_options[Spring Cloud Stream Reference Guide].
-
-=== Solace Binder Configuration Options
 
 ==== Solace Consumer Properties
 
@@ -322,6 +333,161 @@ These subscriptions may also contain wildcards. +
 The `prefix` property is not applied on these subscriptions.
 +
 Default: Empty `Map&lt;String,String[]&gt;`
+
+=== Solace Message Headers
+
+Solace-defined Spring headers to get/set Solace metadata from/to Spring `Message` headers.
+
+WARNING: `solace_` is a header space reserved for Solace-defined headers. Creating new `solace_`-prefixed headers is not supported. Doing so may cause unexpected side-effects in future versions of this binder.
+
+CAUTION: Refer to each header's documentation for their expected usage scenario. Using headers outside of their intended type and access-control is not supported.
+
+[NOTE]
+====
+Header inheritance applies to Solace message headers in processor message handlers:
+
+[quote, 'https://docs.spring.io/spring-cloud-stream/docs/3.0.8.RELEASE/reference/html/spring-cloud-stream.html#_mechanics[Mechanics, Spring Cloud Stream Reference]']
+____
+When the non-void handler method returns, if the return value is already a `Message`, that `Message` becomes the payload. However, when the return value is not a `Message`, the new `Message` is constructed with the return value as the payload while inheriting headers from the input `Message` minus the headers defined or filtered by `SpringIntegrationProperties.messageHandlerNotPropagatedHeaders`.
+____
+====
+
+==== Solace Headers
+
+These headers are to get/set Solace message properties.
+
+TIP: Use link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream-binder-core/src/main/java/com/solace/spring/cloud/stream/binder/messaging/SolaceHeaders.java[SolaceHeaders] instead of hardcoding the header names. This class also contains the same documentation that you see here.
+
+[cols="1m,1m,1,4", options="header"]
+|===
+| Header Name
+| Type
+| Access
+| Description
+
+| solace_applicationMessageId
+| String
+| Read/Write
+|The message ID (a string for an application-specific message identifier).
+
+This is the `JMSMessageID` header field if publishing/consuming to/from JMS.
+
+| solace_applicationMessageType
+| String
+| Read/Write
+| The application message type.
+
+This is the `JMSType` header field if publishing/consuming to/from JMS.
+
+| solace_correlationId
+| String
+| Read/Write
+| The correlation ID.
+
+| solace_destination
+| Destination
+| Read
+| The destination this message was published to.
+
+| solace_discardIndication
+| Boolean
+| Read
+| Whether one or more messages have been discarded prior to the current message.
+
+| solace_dmqEligible
+| Boolean
+| Read/Write
+| Whether the message is eligible to be moved to a Dead Message Queue.
+
+| solace_expiration
+| Long
+| Read/Write
+| The UTC time (in milliseconds, from midnight, January 1, 1970 UTC) when the message is supposed to expire.
+
+| solace_httpContentEncoding
+| String
+| Read/Write
+| The HTTP content encoding header value from interaction with an HTTP client.
+
+| solace_priority
+| Integer
+| Read/Write
+| Priority value in the range of 0–255, or -1 if it is not set.
+
+| solace_receiveTimestamp
+| Long
+| Read
+| The receive timestamp (in milliseconds, from midnight, January 1, 1970 UTC).
+
+| solace_redelivered
+| Boolean
+| Read
+| Indicates if the message has been delivered by the broker to the API before.
+
+| solace_replyTo
+| Destination
+| Read/Write
+| The replyTo destination for the message.
+
+| solace_senderId
+| String
+| Read/Write
+| The Sender ID for the message.
+
+| solace_senderTimestamp
+| Long
+| Read/Write
+| The send timestamp (in milliseconds, from midnight, January 1, 1970 UTC).
+
+| solace_sequenceNumber
+| Long
+| Read/Write
+| The sequence number.
+
+| solace_timeToLive
+| Long
+| Read/Write
+| The number of milliseconds before the message is discarded or moved to a Dead Message Queue.
+
+| solace_userData
+| byte[]
+| Read/Write
+| When an application sends a message, it can optionally attach application-specific data along with the message, such as user data.
+|===
+
+==== Solace Binder Headers
+
+These headers are to get/set Solace Spring Cloud Stream Binder properties.
+
+These can be used for:
+
+* Getting/Setting Solace Binder metadata
+* Directive actions for the binder when producing/consuming messages
+
+TIP: Use link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream-binder-core/src/main/java/com/solace/spring/cloud/stream/binder/messaging/SolaceBinderHeaders.java[SolaceBinderHeaders] instead of hardcoding the header names. This class also contains the same documentation that you see here.
+
+[cols="1m,1m,1,4", options="header"]
+|===
+| Header Name
+| Type
+| Access
+| Description
+
+| solace_scst_messageVersion
+| Integer
+| Read
+| A static number set by the publisher to indicate the Spring Cloud Stream Solace message version.
+
+| solace_scst_serializedPayload
+| Boolean
+| Internal Binder Use Only
+| Is `true` if a Solace Spring Cloud Stream binder has serialized the payload before publishing it to a broker. Is undefined otherwise.
+
+| solace_scst_serializedHeaders
+| SDTStream
+| Internal Binder Use Only
+| A stream of header names where each entry indicates that that header’s value was serialized by a Solace Spring Cloud Stream binder before publishing it to a broker.
+|===
 
 == Consumer Concurrency
 
