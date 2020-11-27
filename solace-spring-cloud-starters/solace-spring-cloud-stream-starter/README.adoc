@@ -2,6 +2,7 @@
 :revnumber: 2.1.1
 :toc: preamble
 :icons: font
+:scst-version: 3.0.10.RELEASE
 
 // Github-Specific Settings
 ifdef::env-github[]
@@ -32,15 +33,15 @@ Note that partitioning is not yet supported by this version of the binder.
 
 Note that since the Binder always consumes from queues it is currently required that Assured Delivery be enabled on the Solace PubSub+ Message VPN being used (Assured Delivery is automatically enabled if using Solace Cloud.)
 
-Also, it will be assumed that you have a basic understanding of the Spring Cloud Stream project. If not, then please refer to https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/[Spring's documentation]. For the sake of brevity, this document will solely focus on discussing components unique to Solace.
+Also, it will be assumed that you have a basic understanding of the Spring Cloud Stream project. If not, then please refer to https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/[Spring's documentation]. For the sake of brevity, this document will solely focus on discussing components unique to Solace.
 
 == Spring Cloud Stream Binder
 
-This project extends the Spring Cloud Stream Binder project. If you are new to Spring Cloud Stream, https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle[check out their documentation].
+This project extends the Spring Cloud Stream Binder project. If you are new to Spring Cloud Stream, https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/[check out their documentation].
 
 The following is a brief excerpt from that document:
 
-[quote, 'https://docs.spring.io/spring-cloud-stream/docs/3.0.8.RELEASE/reference/html/spring-cloud-stream.html#spring-cloud-stream-overview-introducing[Introducing Spring Cloud Stream – Spring Cloud Stream Reference]']
+[quote, 'https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#spring-cloud-stream-overview-introducing[Introducing Spring Cloud Stream – Spring Cloud Stream Reference Documentation]']
 ____
 Spring Cloud Stream is a framework for building message-driven microservice applications. Spring Cloud Stream builds upon Spring Boot to create standalone, production-grade Spring applications and uses Spring Integration to provide connectivity to message brokers. It provides opinionated configuration of middleware from several vendors, introducing the concepts of persistent publish-subscribe semantics, consumer groups, and partitions.
 ____
@@ -78,7 +79,7 @@ compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:{revnumber}"
 
 === Creating a Simple Solace Binding
 
-Starting in Spring Cloud Stream version 3 the recommended way to define binding and binding names is to use the Functional approach, which uses Spring Cloud Functions. You can learn more in the https://cloud.spring.io/spring-cloud-static/spring-cloud-stream/current/reference/html/spring-cloud-stream.html#spring_cloud_function[Spring Cloud Function support] and https://cloud.spring.io/spring-cloud-static/spring-cloud-stream/current/reference/html/spring-cloud-stream.html#_functional_binding_names[Functional Binding Names] sections of the reference guide.
+Starting in Spring Cloud Stream version 3 the recommended way to define binding and binding names is to use the Functional approach, which uses Spring Cloud Functions. You can learn more in the https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#spring_cloud_function[Spring Cloud Function support] and https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#_functional_binding_names[Functional Binding Names] sections of the reference guide.
 
 Given this example app:
 
@@ -141,11 +142,11 @@ Configuration of the Solace Spring Cloud Stream Binder is done through https://d
 
 As for auto-configuration-related options required for auto-connecting to Solace message brokers, refer to the https://github.com/SolaceProducts/solace-java-spring-boot#configure-the-application-to-use-your-solace-pubsub-service-credentials[JCSMP Spring Boot Auto-Configuration documentation].
 
-For general binder configuration options and properties, refer to the https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#_configuration_options[Spring Cloud Stream Reference Guide].
+For general binder configuration options and properties, refer to the https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#_configuration_options[Spring Cloud Stream Reference Documentation].
 
 ==== Solace Consumer Properties
 
-The following properties are available for Solace consumers only and must be prefixed with `spring.cloud.stream.solace.bindings.&lt;bindingName&gt;.consumer.` where `bindingName` looks something like `functionName-in-0` as defined in https://cloud.spring.io/spring-cloud-static/spring-cloud-stream/current/reference/html/spring-cloud-stream.html#_functional_binding_names[Functional Binding Names]
+The following properties are available for Solace consumers only and must be prefixed with `spring.cloud.stream.solace.bindings.&lt;bindingName&gt;.consumer.` where `bindingName` looks something like `functionName-in-0` as defined in https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#_functional_binding_names[Functional Binding Names].
 
 See link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream-binder-core/src/main/java/com/solace/spring/cloud/stream/binder/properties/SolaceCommonProperties.java[SolaceCommonProperties] and link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream-binder-core/src/main/java/com/solace/spring/cloud/stream/binder/properties/SolaceConsumerProperties.java[SolaceConsumerProperties] for the most updated list.
 
@@ -273,7 +274,7 @@ Default: `null`
 
 ==== Solace Producer Properties
 
-The following properties are available for Solace producers only and must be prefixed with `spring.cloud.stream.solace.bindings.&lt;bindingName&gt;.producer.` where `bindingName` looks something like `functionName-out-0` as defined in https://cloud.spring.io/spring-cloud-static/spring-cloud-stream/current/reference/html/spring-cloud-stream.html#_functional_binding_names[Functional Binding Names]
+The following properties are available for Solace producers only and must be prefixed with `spring.cloud.stream.solace.bindings.&lt;bindingName&gt;.producer.` where `bindingName` looks something like `functionName-out-0` as defined in https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#_functional_binding_names[Functional Binding Names].
 
 See link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream-binder-core/src/main/java/com/solace/spring/cloud/stream/binder/properties/SolaceCommonProperties.java[SolaceCommonProperties] and link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream-binder-core/src/main/java/com/solace/spring/cloud/stream/binder/properties/SolaceProducerProperties.java[SolaceProducerProperties] for the most updated list.
 
@@ -346,7 +347,7 @@ CAUTION: Refer to each header's documentation for their expected usage scenario.
 ====
 Header inheritance applies to Solace message headers in processor message handlers:
 
-[quote, 'https://docs.spring.io/spring-cloud-stream/docs/3.0.8.RELEASE/reference/html/spring-cloud-stream.html#_mechanics[Mechanics, Spring Cloud Stream Reference]']
+[quote, 'https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#_mechanics[Mechanics, Spring Cloud Stream Reference Documentation]']
 ____
 When the non-void handler method returns, if the return value is already a `Message`, that `Message` becomes the payload. However, when the return value is not a `Message`, the new `Message` is constructed with the return value as the payload while inheriting headers from the input `Message` minus the headers defined or filtered by `SpringIntegrationProperties.messageHandlerNotPropagatedHeaders`.
 ____
@@ -491,7 +492,7 @@ TIP: Use link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream
 
 == Consumer Concurrency
 
-Configure Spring Cloud Stream's https://cloud.spring.io/spring-cloud-static/spring-cloud-stream/current/reference/html/spring-cloud-stream.html#_consumer_properties[concurrency consumer property] to enable concurrent message consumption for a particular consumer binding.
+Configure Spring Cloud Stream's https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#_consumer_properties[concurrency consumer property] to enable concurrent message consumption for a particular consumer binding.
 
 Though note that there are few limitations:
 
@@ -528,7 +529,7 @@ Also, this header is cleared by the message's producer before it is sent off to 
 
 == Failed Message Error Handling
 
-The Spring cloud stream framework already provides a number of application-internal reprocessing strategies for failed messages during message consumption such as. You can read more about that https://cloud.spring.io/spring-cloud-static/spring-cloud-stream/current/reference/html/spring-cloud-stream.html#spring-cloud-stream-overview-error-handling[here]:
+The Spring cloud stream framework already provides a number of application-internal reprocessing strategies for failed messages during message consumption such as. You can read more about that https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/spring-cloud-stream.html#spring-cloud-stream-overview-error-handling[here]:
 
 However, after all internal error handling strategies have been exhausted, the Solace implementation of the binder would by default reject messages that consumer bindings fail to process. Though it may be desirable for these failed messages be preserved and externally re-processed, in which case this binder also provides 2 error handling strategies that consumer bindings can be configured to use:
 
@@ -553,7 +554,7 @@ Note that DMQs are not intended to be used with anonymous consumer groups. Since
 
 For more information about Spring Cloud Streams try these resources:
 
-* https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/[Spring Docs - Spring Cloud Stream Reference Guide]
+* https://docs.spring.io/spring-cloud-stream/docs/{scst-version}/reference/html/[Spring Docs - Spring Cloud Stream Reference Documentation]
 * https://github.com/spring-cloud/spring-cloud-stream-samples[GitHub Samples - Spring Cloud Stream Sample Applications]
 * https://github.com/spring-cloud/spring-cloud-stream[Github Source - Spring Cloud Stream Source Code]
 
