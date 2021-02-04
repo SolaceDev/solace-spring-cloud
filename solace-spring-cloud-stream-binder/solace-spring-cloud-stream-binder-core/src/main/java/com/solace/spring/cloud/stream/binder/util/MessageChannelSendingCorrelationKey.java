@@ -10,17 +10,20 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessagingException;
 
-public class ErrorChannelSendingCorrelationKey {
+public class MessageChannelSendingCorrelationKey {
 	private final Message<?> inputMessage;
+	private final MessageChannel responseChannel;
 	private final MessageChannel errorChannel;
 	private final ErrorMessageStrategy errorMessageStrategy;
 	private XMLMessage rawMessage;
 
-	private static final Log logger = LogFactory.getLog(ErrorChannelSendingCorrelationKey.class);
+	private static final Log logger = LogFactory.getLog(MessageChannelSendingCorrelationKey.class);
 
-	public ErrorChannelSendingCorrelationKey(Message<?> inputMessage, MessageChannel errorChannel,
-											 ErrorMessageStrategy errorMessageStrategy) {
+	public MessageChannelSendingCorrelationKey(Message<?> inputMessage, MessageChannel responseChannel,
+											   MessageChannel errorChannel,
+											   ErrorMessageStrategy errorMessageStrategy) {
 		this.inputMessage = inputMessage;
+		this.responseChannel = responseChannel;
 		this.errorChannel = errorChannel;
 		this.errorMessageStrategy = errorMessageStrategy;
 	}
@@ -38,12 +41,20 @@ public class ErrorChannelSendingCorrelationKey {
 	}
 
 	/**
+	 * Send the message to the response channel if defined.
+	 * @return true if the message was processed
+	 */
+	public boolean sendResponse() {
+		return responseChannel != null && responseChannel.send(inputMessage);
+	}
+
+	/**
 	 * Send the message to the error channel if defined.
 	 * @param msg the failure description
 	 * @param cause the failure cause
 	 * @return the exception wrapper containing the failed input message
 	 */
-	public MessagingException send(String msg, Exception cause) {
+	public MessagingException sendError(String msg, Exception cause) {
 		MessagingException exception = new MessagingException(inputMessage, msg, cause);
 		if (errorChannel != null) {
 			AttributeAccessor attributes = ErrorMessageUtils.getAttributeAccessor(inputMessage, null);

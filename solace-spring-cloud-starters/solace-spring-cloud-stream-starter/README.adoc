@@ -304,6 +304,11 @@ The following properties are available for Solace producers only and must be pre
 
 See link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream-binder-core/src/main/java/com/solace/spring/cloud/stream/binder/properties/SolaceCommonProperties.java[SolaceCommonProperties] and link:../../solace-spring-cloud-stream-binder/solace-spring-cloud-stream-binder-core/src/main/java/com/solace/spring/cloud/stream/binder/properties/SolaceProducerProperties.java[SolaceProducerProperties] for the most updated list.
 
+responseChannelEnabled::
+When set to `true`, send responses are sent to a response channel (`<destination>.responses`) for the destination.
++
+Default: `false`
+
 headerExclusions::
 The list of headers to exclude from the published message. Excluding Solace message headers is not supported.
 +

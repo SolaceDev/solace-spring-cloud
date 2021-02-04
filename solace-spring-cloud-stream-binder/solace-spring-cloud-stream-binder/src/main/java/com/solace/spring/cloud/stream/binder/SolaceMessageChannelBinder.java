@@ -3,6 +3,10 @@ package com.solace.spring.cloud.stream.binder;
 import com.solace.spring.cloud.stream.binder.inbound.JCSMPInboundChannelAdapter;
 import com.solace.spring.cloud.stream.binder.inbound.JCSMPMessageSource;
 import com.solace.spring.cloud.stream.binder.outbound.JCSMPOutboundMessageHandler;
+import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
+import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
+import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
+import com.solace.spring.cloud.stream.binder.provisioning.SolaceQueueProvisioner;
 import com.solace.spring.cloud.stream.binder.util.ErrorQueueInfrastructure;
 import com.solace.spring.cloud.stream.binder.util.JCSMPSessionProducerManager;
 import com.solace.spring.cloud.stream.binder.util.SolaceErrorMessageHandler;
@@ -19,18 +23,16 @@ import org.springframework.cloud.stream.binder.DefaultPollableMessageSource;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.binder.ExtendedPropertiesBinder;
-import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
-import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
-import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
-import com.solace.spring.cloud.stream.binder.provisioning.SolaceQueueProvisioner;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.integration.StaticMessageHeaderAccessor;
+import org.springframework.integration.channel.PublishSubscribeChannel;
 import org.springframework.integration.core.MessageProducer;
-import org.springframework.integration.support.DefaultErrorMessageStrategy;
 import org.springframework.integration.support.ErrorMessageStrategy;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.SubscribableChannel;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -70,8 +72,14 @@ public class SolaceMessageChannelBinder
 	protected MessageHandler createProducerMessageHandler(ProducerDestination destination,
 														  ExtendedProducerProperties<SolaceProducerProperties> producerProperties,
 														  MessageChannel errorChannel) {
+		MessageChannel responseChannel = null;
+		if (producerProperties.getExtension().isResponseChannelEnabled()) {
+			responseChannel = registerResponseInfrastructure(destination);
+		}
+
 		JCSMPOutboundMessageHandler handler = new JCSMPOutboundMessageHandler(
-				destination, jcsmpSession, errorChannel, sessionProducerManager, producerProperties.getExtension());
+				destination, jcsmpSession, responseChannel, errorChannel, sessionProducerManager,
+				producerProperties.getExtension());
 
 		if (errorChannel != null) {
 			handler.setErrorMessageStrategy(errorMessageStrategy);
@@ -196,6 +204,30 @@ public class SolaceMessageChannelBinder
 
 	public void setExtendedBindingProperties(SolaceExtendedBindingProperties extendedBindingProperties) {
 		this.extendedBindingProperties = extendedBindingProperties;
+	}
+
+	private SubscribableChannel registerResponseInfrastructure(
+			ProducerDestination destination) {
+		String responseChannelName = responseBaseName(destination);
+		SubscribableChannel responseChannel;
+		if (getApplicationContext().containsBean(responseChannelName)) {
+			Object responseChannelObject = getApplicationContext().getBean(responseChannelName);
+			if (!(responseChannelObject instanceof SubscribableChannel)) {
+				throw new IllegalStateException("Response channel '" + responseChannelName
+						+ "' must be a SubscribableChannel");
+			}
+			responseChannel = (SubscribableChannel) responseChannelObject;
+		}
+		else {
+			responseChannel = new PublishSubscribeChannel();
+			((GenericApplicationContext) getApplicationContext()).registerBean(
+					responseChannelName, SubscribableChannel.class, () -> responseChannel);
+		}
+		return responseChannel;
+	}
+
+	protected String responseBaseName(ProducerDestination destination) {
+		return destination.getName() + ".responses";
 	}
 
 	/**

@@ -2,7 +2,7 @@ package com.solace.spring.cloud.stream.binder.outbound;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solace.spring.cloud.stream.binder.util.ClosedChannelBindingException;
-import com.solace.spring.cloud.stream.binder.util.ErrorChannelSendingCorrelationKey;
+import com.solace.spring.cloud.stream.binder.util.MessageChannelSendingCorrelationKey;
 import com.solace.spring.cloud.stream.binder.util.JCSMPSessionProducerManager;
 import com.solace.spring.cloud.stream.binder.util.XMLMessageMapper;
 import com.solacesystems.jcsmp.JCSMPException;
@@ -29,6 +29,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	private final String id = UUID.randomUUID().toString();
 	private final Topic topic;
 	private final JCSMPSession jcsmpSession;
+	private final MessageChannel responseChannel;
 	private final MessageChannel errorChannel;
 	private final JCSMPSessionProducerManager producerManager;
 	private final SolaceProducerProperties properties;
@@ -41,11 +42,13 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 
 	public JCSMPOutboundMessageHandler(ProducerDestination destination,
 									   JCSMPSession jcsmpSession,
+									   MessageChannel responseChannel,
 									   MessageChannel errorChannel,
 									   JCSMPSessionProducerManager producerManager,
 									   SolaceProducerProperties properties) {
 		this.topic = JCSMPFactory.onlyInstance().createTopic(destination.getName());
 		this.jcsmpSession = jcsmpSession;
+		this.responseChannel = responseChannel;
 		this.errorChannel = errorChannel;
 		this.producerManager = producerManager;
 		this.properties = properties;
@@ -53,8 +56,8 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 
 	@Override
 	public void handleMessage(Message<?> message) throws MessagingException {
-		ErrorChannelSendingCorrelationKey correlationKey = new ErrorChannelSendingCorrelationKey(message,
-				errorChannel, errorMessageStrategy);
+		MessageChannelSendingCorrelationKey correlationKey = new MessageChannelSendingCorrelationKey(message,
+				responseChannel, errorChannel, errorMessageStrategy);
 
 		if (! isRunning()) {
 			String msg0 = String.format("Cannot send message using handler %s", id);
@@ -123,9 +126,9 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 		this.errorMessageStrategy = errorMessageStrategy;
 	}
 
-	private MessagingException handleMessagingException(ErrorChannelSendingCorrelationKey key, String msg, Exception e)
+	private MessagingException handleMessagingException(MessageChannelSendingCorrelationKey key, String msg, Exception e)
 			throws MessagingException {
 		logger.warn(msg, e);
-		return key.send(msg, e);
+		return key.sendError(msg, e);
 	}
 }

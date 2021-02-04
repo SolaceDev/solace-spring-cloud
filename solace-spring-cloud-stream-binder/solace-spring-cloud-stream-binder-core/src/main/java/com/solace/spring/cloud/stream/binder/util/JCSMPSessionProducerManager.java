@@ -38,13 +38,17 @@ public class JCSMPSessionProducerManager extends SharedResourceManager<XMLMessag
 		@Override
 		public void responseReceivedEx(Object correlationKey) {
 			logger.debug("Producer received response for correlation key: " + correlationKey);
+			if (correlationKey instanceof MessageChannelSendingCorrelationKey) {
+				MessageChannelSendingCorrelationKey key = (MessageChannelSendingCorrelationKey) correlationKey;
+				key.sendResponse();
+			}
 		}
 
 		@SuppressWarnings("ThrowableNotThrown")
 		@Override
 		public void handleErrorEx(Object correlationKey, JCSMPException cause, long timestamp) {
-			if (correlationKey instanceof ErrorChannelSendingCorrelationKey) {
-				ErrorChannelSendingCorrelationKey key = (ErrorChannelSendingCorrelationKey) correlationKey;
+			if (correlationKey instanceof MessageChannelSendingCorrelationKey) {
+				MessageChannelSendingCorrelationKey key = (MessageChannelSendingCorrelationKey) correlationKey;
 				String messageId = key.getRawMessage() != null ? key.getRawMessage().getMessageId() : null;
 				UUID springMessageId = Optional.ofNullable(key.getInputMessage())
 						.map(Message::getHeaders)
@@ -53,7 +57,7 @@ public class JCSMPSessionProducerManager extends SharedResourceManager<XMLMessag
 				String msg = String.format("Producer received error for message %s (Spring message %s) at %s",
 						messageId, springMessageId, timestamp);
 				logger.warn(msg, cause);
-				key.send(msg, cause);
+				key.sendError(msg, cause);
 			} else {
 				logger.warn(String.format("Producer received error for correlation key: %s at %s", correlationKey,
 						timestamp), cause);

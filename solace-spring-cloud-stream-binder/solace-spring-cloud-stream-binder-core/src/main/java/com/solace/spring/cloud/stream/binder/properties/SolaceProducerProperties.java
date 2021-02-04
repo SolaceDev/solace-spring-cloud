@@ -6,9 +6,18 @@ import java.util.List;
 import java.util.Map;
 
 public class SolaceProducerProperties extends SolaceCommonProperties {
+	private boolean responseChannelEnabled = false;
 	private Map<String,String[]> queueAdditionalSubscriptions = new HashMap<>();
 	private List<String> headerExclusions = new ArrayList<>();
 	private boolean nonserializableHeaderConvertToString = false;
+
+	public boolean isResponseChannelEnabled() {
+		return responseChannelEnabled;
+	}
+
+	public void setResponseChannelEnabled(boolean responseChannelEnabled) {
+		this.responseChannelEnabled = responseChannelEnabled;
+	}
 
 	public Map<String, String[]> getQueueAdditionalSubscriptions() {
 		return queueAdditionalSubscriptions;
