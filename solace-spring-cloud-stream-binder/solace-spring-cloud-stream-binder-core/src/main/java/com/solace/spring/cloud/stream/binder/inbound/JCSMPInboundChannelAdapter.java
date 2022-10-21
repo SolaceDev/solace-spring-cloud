@@ -133,7 +133,7 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 
 		try {
 			for (FlowReceiverContainer flowReceiverContainer : flowReceivers) {
-				flowReceiverContainer.bind();
+				flowReceiverContainer.bindAndClearAbortBindFlag();
 			}
 		} catch (JCSMPException e) {
 			String msg = String.format("Failed to get message consumer for inbound adapter %s", id);

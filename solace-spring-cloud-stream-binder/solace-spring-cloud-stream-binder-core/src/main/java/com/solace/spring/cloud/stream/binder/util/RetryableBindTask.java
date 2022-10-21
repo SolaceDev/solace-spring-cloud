@@ -1,5 +1,7 @@
 package com.solace.spring.cloud.stream.binder.util;
 
+import com.solacesystems.jcsmp.JCSMPErrorResponseException;
+import com.solacesystems.jcsmp.JCSMPErrorResponseSubcodeEx;
 import com.solacesystems.jcsmp.JCSMPException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,9 +21,21 @@ public class RetryableBindTask implements RetryableTaskService.RetryableTask {
 	@Override
 	public boolean run(int attempt) {
 		try {
-			flowReceiverContainer.bind();
+			flowReceiverContainer.abortableBind();
+			return true;
+		} catch (FlowReceiverContainer.AbortedBindException e) {
+			logger.debug(String.format("Async bind task was told to abort, cancelling bind task to queue %s",
+					flowReceiverContainer.getQueueName()));
 			return true;
 		} catch (JCSMPException e) {
+			if (e instanceof JCSMPErrorResponseException &&
+					((JCSMPErrorResponseException) e).getSubcodeEx() == JCSMPErrorResponseSubcodeEx.UNKNOWN_QUEUE_NAME) {
+				logger.error(String.format("Queue %s no longer exists. Aborting bind",
+						flowReceiverContainer.getQueueName()), e);
+				//TODO Set flow health indicator as DOWN (SOL-79060)
+				return true;
+			}
+
 			logger.warn(String.format("failed to bind queue %s. Will retry", flowReceiverContainer.getQueueName()), e);
 			return false;
 		}

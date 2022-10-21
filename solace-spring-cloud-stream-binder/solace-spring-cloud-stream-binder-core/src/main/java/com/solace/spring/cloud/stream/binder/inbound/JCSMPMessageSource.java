@@ -234,7 +234,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 						flowReceiverContainer.pause();
 					}
 				}
-				flowReceiverContainer.bind();
+				flowReceiverContainer.bindAndClearAbortBindFlag();
 			} catch (JCSMPException e) {
 				String msg = String.format("Unable to get a message consumer for session %s", jcsmpSession.getSessionName());
 				logger.warn(e, msg);
@@ -262,7 +262,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 		try {
 			if (!isRunning()) return;
 			logger.info(String.format("Stopping consumer to queue %s <message source ID: %s>", queueName, id));
-			flowReceiverContainer.unbind();
+			flowReceiverContainer.unbindAndRaiseAbortBindFlag();
 			isRunning = false;
 		} finally {
 			writeLock.unlock();

@@ -42,6 +42,7 @@ public class FlowReceiverContainer {
 	private final AtomicReference<FlowReceiverReference> flowReceiverAtomicReference = new AtomicReference<>();
 	private final AtomicBoolean isRebinding = new AtomicBoolean(false);
 	private final AtomicBoolean isPaused = new AtomicBoolean(false);
+	private final AtomicBoolean abortBind = new AtomicBoolean(false);
 	private final AtomicReference<SettableListenableFuture<UUID>> rebindFutureReference = new AtomicReference<>(
 			new SettableListenableFuture<>());
 	private final AtomicReference<BackOffExecution> backOffExecutionReference = new AtomicReference<>();
@@ -134,6 +135,44 @@ public class FlowReceiverContainer {
 				flowReceiverReference.get().close();
 				unacknowledgedMessageTracker.reset();
 			}
+		} finally {
+			writeLock.unlock();
+		}
+	}
+
+	public UUID abortableBind() throws JCSMPException, AbortedBindException {
+		Lock writeLock = readWriteLock.writeLock();
+		writeLock.lock();
+		try {
+			if (abortBind.get()) {
+				throw new AbortedBindException();
+			}
+			return bind();
+		} finally {
+			writeLock.unlock();
+		}
+	}
+
+	static class AbortedBindException extends Exception {}
+
+	public void unbindAndRaiseAbortBindFlag() {
+		Lock writeLock = readWriteLock.writeLock();
+		writeLock.lock();
+		try {
+			unbind();
+			abortBind.set(true);
+		} finally {
+			writeLock.unlock();
+		}
+	}
+
+	public UUID bindAndClearAbortBindFlag() throws JCSMPException {
+		Lock writeLock = readWriteLock.writeLock();
+		writeLock.lock();
+		try {
+			UUID toReturn = bind();
+			abortBind.set(false);
+			return toReturn;
 		} finally {
 			writeLock.unlock();
 		}
@@ -579,6 +618,10 @@ public class FlowReceiverContainer {
 		} finally {
 			readLock.unlock();
 		}
+	}
+
+	public JCSMPSession getSession() {
+		return session;
 	}
 
 	public void setRebindWaitTimeout(long timeout, TimeUnit unit) {

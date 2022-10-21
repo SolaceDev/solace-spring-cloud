@@ -17,6 +17,7 @@ import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPTransportException;
 import com.solacesystems.jcsmp.StaleSessionException;
 import com.solacesystems.jcsmp.XMLMessage;
+import com.solacesystems.jcsmp.impl.JCSMPBasicSession;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -98,6 +99,12 @@ abstract class InboundXMLMessageListener implements Runnable {
 				} catch (RuntimeException | UnboundFlowReceiverContainerException e) {
 					logger.warn(String.format("Exception received while consuming messages from destination %s",
 							consumerDestination.getName()), e);
+					if (flowReceiverContainer.getSession() instanceof JCSMPBasicSession &&
+							((JCSMPBasicSession) flowReceiverContainer.getSession()).isSessionReconnectAborted()) {
+						// Workaround so that this doesn't loop forever in infinite async flow-rebind (NACK) edge-case
+						logger.error("Session has lost connection");
+						break;
+					}
 				}
 			}
 		} catch (StaleSessionException e) {
@@ -108,7 +115,7 @@ abstract class InboundXMLMessageListener implements Runnable {
 			throw t;
 		} finally {
 			logger.info(String.format("Closing flow receiver to destination %s", consumerDestination.getName()));
-			flowReceiverContainer.unbind();
+			flowReceiverContainer.unbindAndRaiseAbortBindFlag();
 		}
 	}
 
