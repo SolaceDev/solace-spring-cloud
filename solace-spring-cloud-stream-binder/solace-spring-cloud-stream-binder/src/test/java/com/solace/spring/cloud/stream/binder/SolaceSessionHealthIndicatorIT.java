@@ -8,7 +8,6 @@ import com.solace.spring.cloud.stream.binder.test.util.SolaceTestBinder;
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +36,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @ExtendWith(SpringCloudStreamExtension.class)
 @TestPropertySource(properties = {  "management.endpoint.health.show-details=always", "management.health.binders.enabled=true" })
 @EnableAutoConfiguration
-public class SolaceBinderHealthIndicatorIT {
+public class SolaceSessionHealthIndicatorIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(SolaceBinderHealthIndicatorIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(SolaceSessionHealthIndicatorIT.class);
 
     @Autowired
     private WebApplicationContext webAppContext;

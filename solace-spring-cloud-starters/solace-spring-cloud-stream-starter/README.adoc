@@ -533,6 +533,17 @@ These subscriptions may also contain wildcards.
 Default: Empty `Map&lt;String,String[]&gt;` +
 See: <<Overview>> for more info on how this binder uses topic-to-queue mapping to implement Spring Cloud Streams consumer groups.
 
+==== Solace Session Health-Check Properties
+
+These properties configure the Solace session's health indicator configurable under `solace.health-check.session`.
+
+reconnectAttemptsUntilDown::
+The number of session reconnect attempts until the health goes `DOWN`. This will happen regardless if the underlying session is actually still reconnecting. Set this to `0` will disable this feature.
++
+This feature operates independently of the PubSub+ session reconnect feature.
++
+Default: `0`
+
 === Solace Message Headers
 
 Solace-defined Spring headers to get/set Solace metadata from/to Spring `Message` headers.

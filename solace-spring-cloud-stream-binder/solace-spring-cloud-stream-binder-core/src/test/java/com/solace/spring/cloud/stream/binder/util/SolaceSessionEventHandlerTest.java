@@ -13,7 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class SolaceSessionEventHandlerTest {
 	@Test
-	public void testConnected(@Mock SolaceBinderHealthIndicator healthIndicator) {
+	public void testConnected(@Mock SolaceSessionHealthIndicator healthIndicator) {
 		SolaceSessionEventHandler sessionEventHandler = new SolaceSessionEventHandler(healthIndicator);
 		sessionEventHandler.connected();
 		Mockito.verify(healthIndicator, Mockito.times(1)).up();
@@ -24,12 +24,12 @@ public class SolaceSessionEventHandlerTest {
 	@EnumSource(SessionEvent.class)
 	public void testHandleEvent(SessionEvent event,
 								@Mock SessionEventArgs eventArgs,
-								@Mock SolaceBinderHealthIndicator healthIndicator) {
+								@Mock SolaceSessionHealthIndicator healthIndicator) {
 		Exception exception = new Exception("test");
 		String info = "test=info";
 		int responseCode = 0;
 		Mockito.when(eventArgs.getEvent()).thenReturn(event);
-		if (event.equals(SessionEvent.DOWN_ERROR)) {
+		if (event.equals(SessionEvent.DOWN_ERROR) || event.equals(SessionEvent.RECONNECTING)) {
 			Mockito.when(eventArgs.getException()).thenReturn(exception);
 			Mockito.when(eventArgs.getInfo()).thenReturn(info);
 			Mockito.when(eventArgs.getResponseCode()).thenReturn(responseCode);
@@ -44,7 +44,8 @@ public class SolaceSessionEventHandlerTest {
 						.down(exception, responseCode, info);
 				break;
 			case RECONNECTING:
-				Mockito.verify(healthIndicator, Mockito.times(1)).reconnecting();
+				Mockito.verify(healthIndicator, Mockito.times(1))
+						.reconnecting(exception, responseCode, info);
 				break;
 			case RECONNECTED:
 				Mockito.verify(healthIndicator, Mockito.times(1)).up();

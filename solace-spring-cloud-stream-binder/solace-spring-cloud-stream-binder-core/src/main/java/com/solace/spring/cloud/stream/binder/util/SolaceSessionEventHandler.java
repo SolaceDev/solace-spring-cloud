@@ -10,11 +10,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class SolaceSessionEventHandler implements SessionEventHandler {
 
-    private final SolaceBinderHealthIndicator solaceBinderHealthIndicator;
+    private final SolaceSessionHealthIndicator solaceSessionHealthIndicator;
     private static final Log logger = LogFactory.getLog(SolaceSessionEventHandler.class);
 
-    public SolaceSessionEventHandler(SolaceBinderHealthIndicator solaceBinderHealthIndicator) {
-        this.solaceBinderHealthIndicator = solaceBinderHealthIndicator;
+    public SolaceSessionEventHandler(SolaceSessionHealthIndicator solaceSessionHealthIndicator) {
+        this.solaceSessionHealthIndicator = solaceSessionHealthIndicator;
     }
 
     @Override
@@ -23,15 +23,15 @@ public class SolaceSessionEventHandler implements SessionEventHandler {
             logger.debug(String.format("Received Solace session event %s.", sessionEvent));
         }
         if (sessionEvent.getEvent() == SessionEvent.DOWN_ERROR) {
-            solaceBinderHealthIndicator.down(sessionEvent.getException(), sessionEvent.getResponseCode(), sessionEvent.getInfo());
+            solaceSessionHealthIndicator.down(sessionEvent.getException(), sessionEvent.getResponseCode(), sessionEvent.getInfo());
         } else if (sessionEvent.getEvent() == SessionEvent.RECONNECTING) {
-            solaceBinderHealthIndicator.reconnecting();
+            solaceSessionHealthIndicator.reconnecting(sessionEvent.getException(), sessionEvent.getResponseCode(), sessionEvent.getInfo());
         } else if (sessionEvent.getEvent() == SessionEvent.RECONNECTED) {
-            solaceBinderHealthIndicator.up();
+            solaceSessionHealthIndicator.up();
         }
     }
 
     public void connected() {
-        solaceBinderHealthIndicator.up();
+        solaceSessionHealthIndicator.up();
     }
 }
