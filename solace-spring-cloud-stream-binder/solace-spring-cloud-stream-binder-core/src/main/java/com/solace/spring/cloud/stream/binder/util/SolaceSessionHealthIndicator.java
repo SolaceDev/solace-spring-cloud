@@ -1,11 +1,14 @@
 package com.solace.spring.cloud.stream.binder.util;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceHealthSessionProperties;
+import com.solacesystems.jcsmp.SessionEventArgs;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.lang.Nullable;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,7 +31,7 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
         this.solaceHealthSessionProperties = solaceHealthSessionProperties;
     }
 
-    public void up() {
+    public void up(@Nullable SessionEventArgs sessionEventArgs) {
         writeLock.lock();
         try {
             if (logger.isDebugEnabled()) {
@@ -38,13 +41,13 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
                 logger.trace("Reset reconnect count");
             }
             reconnectCount.set(0);
-            healthStatus = Health.up().build();
+            healthStatus = buildHealthUp(buildHealth(Health.up(), sessionEventArgs), sessionEventArgs).build();
         } finally {
             writeLock.unlock();
         }
     }
 
-    public void reconnecting(Exception exception, int responseCode, String info) {
+    public void reconnecting(@Nullable SessionEventArgs sessionEventArgs) {
         writeLock.lock();
         try {
             long reconnectAttempt = reconnectCount.incrementAndGet();
@@ -56,7 +59,7 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
                     logger.debug(String.format("Solace session reconnect attempt %s > %s, changing state to down",
                             reconnectAttempt, solaceHealthSessionProperties.getReconnectAttemptsUntilDown()));
                 }
-                down(exception, responseCode, info, false);
+                down(sessionEventArgs, false);
                 return;
             }
 
@@ -64,18 +67,18 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
                 logger.debug(String.format("Solace session status is %s (attempt %s)", STATUS_RECONNECTING,
                         reconnectAttempt));
             }
-            healthStatus = addSessionEventDetails(Health.status(STATUS_RECONNECTING), exception, responseCode, info)
-                    .build();
+            healthStatus = buildHealthReconnecting(buildHealth(Health.status(STATUS_RECONNECTING),
+                    sessionEventArgs), sessionEventArgs).build();
         } finally {
             writeLock.unlock();
         }
     }
 
-    public void down(Exception exception, int responseCode, String info) {
-        down(exception, responseCode, info, true);
+    public void down(@Nullable SessionEventArgs sessionEventArgs) {
+        down(sessionEventArgs, true);
     }
 
-    private void down(Exception exception, int responseCode, String info, boolean resetReconnectCount) {
+    private void down(@Nullable SessionEventArgs sessionEventArgs, boolean resetReconnectCount) {
         writeLock.lock();
         try {
             if (logger.isDebugEnabled()) {
@@ -87,19 +90,43 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
                 }
                 reconnectCount.set(0);
             }
-            healthStatus = addSessionEventDetails(Health.down(), exception, responseCode, info).build();
+            healthStatus = buildHealthDown(buildHealth(Health.down(), sessionEventArgs), sessionEventArgs)
+                    .build();
         } finally {
             writeLock.unlock();
         }
     }
 
-    private Health.Builder addSessionEventDetails(Health.Builder builder,
-                                                  Exception exception,
-                                                  int responseCode,
-                                                  String info) {
-        if (exception != null) builder.withException(exception);
-        if (responseCode != 0) builder.withDetail(RESPONSE_CODE, responseCode);
-        if (info != null && !info.isEmpty()) builder.withDetail(INFO, info);
+    protected Health.Builder buildHealth(Health.Builder builder, @Nullable SessionEventArgs sessionEventArgs) {
+        return builder;
+    }
+
+    protected Health.Builder buildHealthUp(Health.Builder builder, @Nullable SessionEventArgs sessionEventArgs) {
+        return builder;
+    }
+
+    protected Health.Builder buildHealthReconnecting(Health.Builder builder,
+                                                     @Nullable SessionEventArgs sessionEventArgs) {
+        return addSessionEventDetails(builder, sessionEventArgs);
+    }
+
+    protected Health.Builder buildHealthDown(Health.Builder builder, @Nullable SessionEventArgs sessionEventArgs) {
+        return addSessionEventDetails(builder, sessionEventArgs);
+    }
+
+    private Health.Builder addSessionEventDetails(Health.Builder builder, @Nullable SessionEventArgs sessionEventArgs) {
+        if (sessionEventArgs == null) {
+            return builder;
+        }
+
+        Optional.ofNullable(sessionEventArgs.getException())
+                .ifPresent(builder::withException);
+        Optional.of(sessionEventArgs.getResponseCode())
+                .filter(c -> c != 0)
+                .ifPresent(c -> builder.withDetail(RESPONSE_CODE, c));
+        Optional.ofNullable(sessionEventArgs.getInfo())
+                .filter(StringUtils::isNotBlank)
+                .ifPresent(info -> builder.withDetail(INFO, info));
         return builder;
     }
 

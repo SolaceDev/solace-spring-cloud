@@ -23,15 +23,15 @@ public class SolaceSessionEventHandler implements SessionEventHandler {
             logger.debug(String.format("Received Solace session event %s.", sessionEvent));
         }
         if (sessionEvent.getEvent() == SessionEvent.DOWN_ERROR) {
-            solaceSessionHealthIndicator.down(sessionEvent.getException(), sessionEvent.getResponseCode(), sessionEvent.getInfo());
+            solaceSessionHealthIndicator.down(sessionEvent);
         } else if (sessionEvent.getEvent() == SessionEvent.RECONNECTING) {
-            solaceSessionHealthIndicator.reconnecting(sessionEvent.getException(), sessionEvent.getResponseCode(), sessionEvent.getInfo());
+            solaceSessionHealthIndicator.reconnecting(sessionEvent);
         } else if (sessionEvent.getEvent() == SessionEvent.RECONNECTED) {
-            solaceSessionHealthIndicator.up();
+            solaceSessionHealthIndicator.up(sessionEvent);
         }
     }
 
     public void connected() {
-        solaceSessionHealthIndicator.up();
+        solaceSessionHealthIndicator.up(null);
     }
 }

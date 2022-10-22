@@ -16,39 +16,28 @@ public class SolaceSessionEventHandlerTest {
 	public void testConnected(@Mock SolaceSessionHealthIndicator healthIndicator) {
 		SolaceSessionEventHandler sessionEventHandler = new SolaceSessionEventHandler(healthIndicator);
 		sessionEventHandler.connected();
-		Mockito.verify(healthIndicator, Mockito.times(1)).up();
+		Mockito.verify(healthIndicator, Mockito.times(1)).up(null);
 		Mockito.verifyNoMoreInteractions(healthIndicator);
 	}
 
-	@ParameterizedTest
+	@ParameterizedTest(name = "[{index}] event={0}")
 	@EnumSource(SessionEvent.class)
 	public void testHandleEvent(SessionEvent event,
 								@Mock SessionEventArgs eventArgs,
 								@Mock SolaceSessionHealthIndicator healthIndicator) {
-		Exception exception = new Exception("test");
-		String info = "test=info";
-		int responseCode = 0;
 		Mockito.when(eventArgs.getEvent()).thenReturn(event);
-		if (event.equals(SessionEvent.DOWN_ERROR) || event.equals(SessionEvent.RECONNECTING)) {
-			Mockito.when(eventArgs.getException()).thenReturn(exception);
-			Mockito.when(eventArgs.getInfo()).thenReturn(info);
-			Mockito.when(eventArgs.getResponseCode()).thenReturn(responseCode);
-		}
-
 		SolaceSessionEventHandler sessionEventHandler = new SolaceSessionEventHandler(healthIndicator);
 		sessionEventHandler.handleEvent(eventArgs);
 
 		switch (event) {
 			case DOWN_ERROR:
-				Mockito.verify(healthIndicator, Mockito.times(1))
-						.down(exception, responseCode, info);
+				Mockito.verify(healthIndicator, Mockito.times(1)).down(eventArgs);
 				break;
 			case RECONNECTING:
-				Mockito.verify(healthIndicator, Mockito.times(1))
-						.reconnecting(exception, responseCode, info);
+				Mockito.verify(healthIndicator, Mockito.times(1)).reconnecting(eventArgs);
 				break;
 			case RECONNECTED:
-				Mockito.verify(healthIndicator, Mockito.times(1)).up();
+				Mockito.verify(healthIndicator, Mockito.times(1)).up(eventArgs);
 				break;
 			default:
 				Mockito.verifyNoInteractions(healthIndicator);
