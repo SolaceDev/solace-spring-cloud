@@ -1,6 +1,5 @@
 package com.solace.spring.cloud.stream.binder.util;
 
-import com.solacesystems.jcsmp.SessionEvent;
 import com.solacesystems.jcsmp.SessionEventArgs;
 import com.solacesystems.jcsmp.SessionEventHandler;
 import org.apache.commons.logging.Log;
@@ -22,12 +21,16 @@ public class SolaceSessionEventHandler implements SessionEventHandler {
         if (logger.isDebugEnabled()) {
             logger.debug(String.format("Received Solace session event %s.", sessionEvent));
         }
-        if (sessionEvent.getEvent() == SessionEvent.DOWN_ERROR) {
-            solaceSessionHealthIndicator.down(sessionEvent);
-        } else if (sessionEvent.getEvent() == SessionEvent.RECONNECTING) {
-            solaceSessionHealthIndicator.reconnecting(sessionEvent);
-        } else if (sessionEvent.getEvent() == SessionEvent.RECONNECTED) {
-            solaceSessionHealthIndicator.up(sessionEvent);
+        switch (sessionEvent.getEvent()) {
+            case DOWN_ERROR:
+                solaceSessionHealthIndicator.down(sessionEvent);
+                break;
+            case RECONNECTING:
+                solaceSessionHealthIndicator.reconnecting(sessionEvent);
+                break;
+            case RECONNECTED:
+                solaceSessionHealthIndicator.up(sessionEvent);
+                break;
         }
     }
 

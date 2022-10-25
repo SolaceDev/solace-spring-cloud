@@ -21,7 +21,7 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
     private static final String RESPONSE_CODE = "responseCode";
 
     private final SolaceHealthSessionProperties solaceHealthSessionProperties;
-    private volatile Health healthStatus;
+    private volatile Health health;
     private final AtomicLong reconnectCount = new AtomicLong(0);
     private final ReentrantLock writeLock = new ReentrantLock();
 
@@ -41,7 +41,7 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
                 logger.trace("Reset reconnect count");
             }
             reconnectCount.set(0);
-            healthStatus = buildHealthUp(buildHealth(Health.up(), sessionEventArgs), sessionEventArgs).build();
+            health = buildHealthUp(buildHealth(Health.up(), sessionEventArgs), sessionEventArgs).build();
         } finally {
             writeLock.unlock();
         }
@@ -67,7 +67,7 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
                 logger.debug(String.format("Solace session status is %s (attempt %s)", STATUS_RECONNECTING,
                         reconnectAttempt));
             }
-            healthStatus = buildHealthReconnecting(buildHealth(Health.status(STATUS_RECONNECTING),
+            health = buildHealthReconnecting(buildHealth(Health.status(STATUS_RECONNECTING),
                     sessionEventArgs), sessionEventArgs).build();
         } finally {
             writeLock.unlock();
@@ -90,7 +90,7 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
                 }
                 reconnectCount.set(0);
             }
-            healthStatus = buildHealthDown(buildHealth(Health.down(), sessionEventArgs), sessionEventArgs)
+            health = buildHealthDown(buildHealth(Health.down(), sessionEventArgs), sessionEventArgs)
                     .build();
         } finally {
             writeLock.unlock();
@@ -132,6 +132,6 @@ public class SolaceSessionHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        return healthStatus;
+        return health;
     }
 }
