@@ -1,5 +1,7 @@
 package com.solace.spring.cloud.stream.binder.util;
 
+import com.solace.spring.cloud.stream.binder.health.SolaceFlowHealthIndicator;
+import com.solace.spring.cloud.stream.binder.properties.SolaceHealthFlowProperties;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.ClosedFacilityException;
 import com.solacesystems.jcsmp.ConsumerFlowProperties;
@@ -69,7 +71,7 @@ public class FlowReceiverContainer {
 
 	private static final Log logger = LogFactory.getLog(FlowReceiverContainer.class);
 	private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
-	private final SolaceFlowEventHandler eventHandler;
+	private final SolaceBinderFlowEventHandler eventHandler;
 
 	public FlowReceiverContainer(JCSMPSession session,
 								 String queueName,
@@ -79,7 +81,8 @@ public class FlowReceiverContainer {
 		this.queueName = queueName;
 		this.endpointProperties = endpointProperties;
 		this.backOff = backOff;
-		this.eventHandler = new SolaceFlowEventHandler(xmlMessageMapper, id.toString());
+		this.eventHandler = new SolaceBinderFlowEventHandler(xmlMessageMapper, id.toString(),
+				new SolaceFlowHealthIndicator(new SolaceHealthFlowProperties())); //TODO SOL-79060
 	}
 
 	/**
@@ -108,6 +111,7 @@ public class FlowReceiverContainer {
 						.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_CLIENT)
 						.setStartState(!isPaused.get());
 				FlowReceiver flowReceiver = session.createFlow(null, flowProperties, endpointProperties, eventHandler);
+				eventHandler.connected();
 				FlowReceiverReference newFlowReceiverReference = new FlowReceiverReference(flowReceiver);
 				flowReceiverAtomicReference.set(newFlowReceiverReference);
 				xmlMessageMapper.resetIgnoredProperties(id.toString());
