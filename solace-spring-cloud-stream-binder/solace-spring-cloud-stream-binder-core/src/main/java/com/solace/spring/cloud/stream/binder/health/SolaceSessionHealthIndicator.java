@@ -1,4 +1,4 @@
-package com.solace.spring.cloud.stream.binder.util;
+package com.solace.spring.cloud.stream.binder.health;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceHealthSessionProperties;
 import com.solacesystems.jcsmp.SessionEventArgs;

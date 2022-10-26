@@ -1,4 +1,4 @@
-package com.solace.spring.cloud.stream.binder.util;
+package com.solace.spring.cloud.stream.binder.health;
 
 import com.solacesystems.jcsmp.SessionEvent;
 import com.solacesystems.jcsmp.SessionEventArgs;
@@ -11,10 +11,10 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class SolaceSessionEventHandlerTest {
+public class HealthInvokingSessionEventHandlerTest {
 	@Test
 	public void testConnected(@Mock SolaceSessionHealthIndicator healthIndicator) {
-		SolaceSessionEventHandler sessionEventHandler = new SolaceSessionEventHandler(healthIndicator);
+		HealthInvokingSessionEventHandler sessionEventHandler = new HealthInvokingSessionEventHandler(healthIndicator);
 		sessionEventHandler.connected();
 		Mockito.verify(healthIndicator, Mockito.times(1)).up(null);
 		Mockito.verifyNoMoreInteractions(healthIndicator);
@@ -26,7 +26,7 @@ public class SolaceSessionEventHandlerTest {
 								@Mock SessionEventArgs eventArgs,
 								@Mock SolaceSessionHealthIndicator healthIndicator) {
 		Mockito.when(eventArgs.getEvent()).thenReturn(event);
-		SolaceSessionEventHandler sessionEventHandler = new SolaceSessionEventHandler(healthIndicator);
+		HealthInvokingSessionEventHandler sessionEventHandler = new HealthInvokingSessionEventHandler(healthIndicator);
 		sessionEventHandler.handleEvent(eventArgs);
 
 		switch (event) {

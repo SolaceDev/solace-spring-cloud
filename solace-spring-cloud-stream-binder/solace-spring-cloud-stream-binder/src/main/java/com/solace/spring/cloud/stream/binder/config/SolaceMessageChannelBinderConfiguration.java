@@ -4,7 +4,7 @@ import com.solace.spring.cloud.stream.binder.SolaceMessageChannelBinder;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceQueueProvisioner;
-import com.solace.spring.cloud.stream.binder.util.SolaceSessionEventHandler;
+import com.solace.spring.cloud.stream.binder.health.HealthInvokingSessionEventHandler;
 import com.solacesystems.jcsmp.Context;
 import com.solacesystems.jcsmp.ContextProperties;
 import com.solacesystems.jcsmp.JCSMPException;
@@ -27,7 +27,7 @@ import javax.annotation.PostConstruct;
 public class SolaceMessageChannelBinderConfiguration {
 	private final JCSMPProperties jcsmpProperties;
 	private final SolaceExtendedBindingProperties solaceExtendedBindingProperties;
-	private final SolaceSessionEventHandler solaceSessionEventHandler;
+	private final HealthInvokingSessionEventHandler healthInvokingSessionEventHandler;
 
 	private JCSMPSession jcsmpSession;
 	private Context context;
@@ -36,10 +36,10 @@ public class SolaceMessageChannelBinderConfiguration {
 
 	public SolaceMessageChannelBinderConfiguration(JCSMPProperties jcsmpProperties,
 												   SolaceExtendedBindingProperties solaceExtendedBindingProperties,
-												   @Nullable SolaceSessionEventHandler solaceSessionEventHandler) {
+												   @Nullable HealthInvokingSessionEventHandler healthInvokingSessionEventHandler) {
 		this.jcsmpProperties = jcsmpProperties;
 		this.solaceExtendedBindingProperties = solaceExtendedBindingProperties;
-		this.solaceSessionEventHandler = solaceSessionEventHandler;
+		this.healthInvokingSessionEventHandler = healthInvokingSessionEventHandler;
 	}
 
 	@PostConstruct
@@ -47,19 +47,19 @@ public class SolaceMessageChannelBinderConfiguration {
 		JCSMPProperties jcsmpProperties = (JCSMPProperties) this.jcsmpProperties.clone();
 		jcsmpProperties.setProperty(JCSMPProperties.CLIENT_INFO_PROVIDER, new SolaceBinderClientInfoProvider());
 		try {
-			if (solaceSessionEventHandler != null) {
+			if (healthInvokingSessionEventHandler != null) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Registering Solace Session Event handler on session");
 				}
 				context = JCSMPFactory.onlyInstance().createContext(new ContextProperties());
-				jcsmpSession = JCSMPFactory.onlyInstance().createSession(jcsmpProperties, context, solaceSessionEventHandler);
+				jcsmpSession = JCSMPFactory.onlyInstance().createSession(jcsmpProperties, context, healthInvokingSessionEventHandler);
 			} else {
 				jcsmpSession = JCSMPFactory.onlyInstance().createSession(jcsmpProperties);
 			}
 			logger.info(String.format("Connecting JCSMP session %s", jcsmpSession.getSessionName()));
 			jcsmpSession.connect();
-			if (solaceSessionEventHandler != null) {
-				solaceSessionEventHandler.connected();
+			if (healthInvokingSessionEventHandler != null) {
+				healthInvokingSessionEventHandler.connected();
 			}
 		} catch (Exception e) {
 			if (context != null) {

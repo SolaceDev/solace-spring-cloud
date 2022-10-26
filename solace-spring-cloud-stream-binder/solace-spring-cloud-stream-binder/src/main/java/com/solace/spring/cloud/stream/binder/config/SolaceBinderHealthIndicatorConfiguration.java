@@ -1,8 +1,8 @@
 package com.solace.spring.cloud.stream.binder.config;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceHealthSessionProperties;
-import com.solace.spring.cloud.stream.binder.util.SolaceSessionEventHandler;
-import com.solace.spring.cloud.stream.binder.util.SolaceSessionHealthIndicator;
+import com.solace.spring.cloud.stream.binder.health.HealthInvokingSessionEventHandler;
+import com.solace.spring.cloud.stream.binder.health.SolaceSessionHealthIndicator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator;
@@ -28,11 +28,11 @@ public class SolaceBinderHealthIndicatorConfiguration {
     }
 
     @Bean
-    public SolaceSessionEventHandler solaceSessionEventHandler(SolaceSessionHealthIndicator solaceSessionHealthIndicator) {
+    public HealthInvokingSessionEventHandler solaceSessionEventHandler(SolaceSessionHealthIndicator solaceSessionHealthIndicator) {
         if (logger.isDebugEnabled()) {
             logger.debug("Creating Solace Session Event Handler");
         }
-        return new SolaceSessionEventHandler(solaceSessionHealthIndicator);
+        return new HealthInvokingSessionEventHandler(solaceSessionHealthIndicator);
     }
 
 }

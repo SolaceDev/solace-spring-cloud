@@ -1,4 +1,4 @@
-package com.solace.spring.cloud.stream.binder.util;
+package com.solace.spring.cloud.stream.binder.health;
 
 import com.solacesystems.jcsmp.SessionEventArgs;
 import com.solacesystems.jcsmp.SessionEventHandler;
@@ -7,12 +7,12 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SolaceSessionEventHandler implements SessionEventHandler {
+public class HealthInvokingSessionEventHandler implements SessionEventHandler {
 
     private final SolaceSessionHealthIndicator solaceSessionHealthIndicator;
-    private static final Log logger = LogFactory.getLog(SolaceSessionEventHandler.class);
+    private static final Log logger = LogFactory.getLog(HealthInvokingSessionEventHandler.class);
 
-    public SolaceSessionEventHandler(SolaceSessionHealthIndicator solaceSessionHealthIndicator) {
+    public HealthInvokingSessionEventHandler(SolaceSessionHealthIndicator solaceSessionHealthIndicator) {
         this.solaceSessionHealthIndicator = solaceSessionHealthIndicator;
     }
 
