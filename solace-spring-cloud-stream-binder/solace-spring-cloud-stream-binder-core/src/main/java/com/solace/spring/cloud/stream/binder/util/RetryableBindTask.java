@@ -32,6 +32,8 @@ public class RetryableBindTask implements RetryableTaskService.RetryableTask {
 					((JCSMPErrorResponseException) e).getSubcodeEx() == JCSMPErrorResponseSubcodeEx.UNKNOWN_QUEUE_NAME) {
 				logger.error(String.format("Queue %s no longer exists. Aborting bind",
 						flowReceiverContainer.getQueueName()), e);
+
+				flowReceiverContainer.unbindAndRaiseAbortBindFlag();
 				//TODO Set flow health indicator as DOWN (SOL-79060)
 				return true;
 			}

@@ -105,6 +105,10 @@ abstract class InboundXMLMessageListener implements Runnable {
 						logger.error("Session has lost connection");
 						break;
 					}
+					if (flowReceiverContainer.isAbortedBind()) {
+						logger.error("Flow receiver has aborted its bind");
+						break;
+					}
 				}
 			}
 		} catch (StaleSessionException e) {

@@ -153,6 +153,16 @@ public class FlowReceiverContainer {
 		}
 	}
 
+	public boolean isAbortedBind() {
+		Lock readLock = readWriteLock.readLock();
+		readLock.lock();
+		try {
+			return abortBind.get();
+		} finally {
+			readLock.unlock();
+		}
+	}
+
 	static class AbortedBindException extends Exception {}
 
 	public void unbindAndRaiseAbortBindFlag() {
