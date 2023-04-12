@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.DeprecatedConfigurationProperty;
 import org.springframework.util.Assert;
 
-import javax.validation.constraints.Min;
+import jakarta.validation.constraints.Min;
 import java.util.concurrent.TimeUnit;
 
 import static com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties.DEFAULTS_PREFIX;
