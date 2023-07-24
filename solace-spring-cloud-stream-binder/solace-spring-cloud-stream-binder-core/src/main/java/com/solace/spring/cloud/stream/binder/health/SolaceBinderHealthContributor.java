@@ -34,6 +34,14 @@ public class SolaceBinderHealthContributor implements CompositeHealthContributor
 		}
 	}
 
+	public SolaceSessionHealthIndicator getSolaceSessionHealthIndicator() {
+		return solaceSessionHealthIndicator;
+	}
+
+	public SolaceBindingsHealthContributor getSolaceBindingsHealthContributor() {
+		return solaceBindingsHealthContributor;
+	}
+
 	@NotNull
 	@Override
 	public Iterator<NamedContributor<HealthContributor>> iterator() {

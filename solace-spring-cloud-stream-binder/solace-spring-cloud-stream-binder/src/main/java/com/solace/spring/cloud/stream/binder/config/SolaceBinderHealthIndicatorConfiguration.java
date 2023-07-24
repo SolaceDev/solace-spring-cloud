@@ -22,35 +22,21 @@ public class SolaceBinderHealthIndicatorConfiguration {
     private static final Log logger = LogFactory.getLog(SolaceBinderHealthIndicatorConfiguration.class);
 
     @Bean
-    public SolaceBinderHealthContributor solaceBinderHealthIndicator(SolaceSessionHealthIndicator solaceSessionHealthIndicator) {
+    public SolaceBinderHealthContributor solaceBinderHealthContributor(SolaceHealthSessionProperties solaceHealthProperties) {
         if (logger.isDebugEnabled()) {
             logger.debug("Creating Solace Binder Health Indicator");
         }
-        return new SolaceBinderHealthContributor(solaceSessionHealthIndicator, new SolaceBindingsHealthContributor());
+        return new SolaceBinderHealthContributor(
+                new SolaceSessionHealthIndicator(solaceHealthProperties),
+                new SolaceBindingsHealthContributor());
     }
 
     @Bean
-    public SolaceBindingsHealthContributor solaceBindingsHealthContributor() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Creating Solace Binder Bindings Health Indicator");
-        }
-        return new SolaceBindingsHealthContributor();
-    }
-
-    @Bean
-    public SolaceSessionHealthIndicator solaceBinderSessionIndicator(SolaceHealthSessionProperties solaceHealthProperties) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Creating Solace Binder Session Health Indicator");
-        }
-        return new SolaceSessionHealthIndicator(solaceHealthProperties);
-    }
-
-    @Bean
-    public HealthInvokingSessionEventHandler solaceSessionEventHandler(SolaceSessionHealthIndicator solaceSessionHealthIndicator) {
+    public HealthInvokingSessionEventHandler solaceSessionEventHandler(SolaceBinderHealthContributor solaceBinderHealthIndicator) {
         if (logger.isDebugEnabled()) {
             logger.debug("Creating Solace Session Event Handler");
         }
-        return new HealthInvokingSessionEventHandler(solaceSessionHealthIndicator);
+        return new HealthInvokingSessionEventHandler(solaceBinderHealthIndicator.getSolaceSessionHealthIndicator());
     }
 
 }

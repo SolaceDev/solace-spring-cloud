@@ -1,11 +1,11 @@
 package com.solace.spring.cloud.stream.binder.config;
 
 import com.solace.spring.cloud.stream.binder.SolaceMessageChannelBinder;
-import com.solace.spring.cloud.stream.binder.health.SolaceBindingsHealthContributor;
+import com.solace.spring.cloud.stream.binder.health.HealthInvokingSessionEventHandler;
+import com.solace.spring.cloud.stream.binder.health.SolaceBinderHealthContributor;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceQueueProvisioner;
-import com.solace.spring.cloud.stream.binder.health.HealthInvokingSessionEventHandler;
 import com.solacesystems.jcsmp.Context;
 import com.solacesystems.jcsmp.ContextProperties;
 import com.solacesystems.jcsmp.JCSMPException;
@@ -72,11 +72,14 @@ public class SolaceMessageChannelBinderConfiguration {
 
 	@Bean
 	SolaceMessageChannelBinder solaceMessageChannelBinder(SolaceQueueProvisioner solaceQueueProvisioner,
-														  @Nullable SolaceBindingsHealthContributor solaceBindingsHealthContributor,
+														  @Nullable SolaceBinderHealthContributor solaceBinderHealthContributor,
 														  @Nullable SolaceMeterAccessor solaceMeterAccessor) {
 		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession, context, solaceQueueProvisioner);
 		binder.setExtendedBindingProperties(solaceExtendedBindingProperties);
 		binder.setSolaceMeterAccessor(solaceMeterAccessor);
+		if (solaceBinderHealthContributor != null) {
+			binder.setBindingsHealthContributor(solaceBinderHealthContributor.getSolaceBindingsHealthContributor());
+		}
 		return binder;
 	}
 
