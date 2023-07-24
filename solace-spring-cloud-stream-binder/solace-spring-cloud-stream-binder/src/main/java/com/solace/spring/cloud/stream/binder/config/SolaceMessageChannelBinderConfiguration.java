@@ -1,6 +1,7 @@
 package com.solace.spring.cloud.stream.binder.config;
 
 import com.solace.spring.cloud.stream.binder.SolaceMessageChannelBinder;
+import com.solace.spring.cloud.stream.binder.health.SolaceBindingsHealthContributor;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceQueueProvisioner;
@@ -71,6 +72,7 @@ public class SolaceMessageChannelBinderConfiguration {
 
 	@Bean
 	SolaceMessageChannelBinder solaceMessageChannelBinder(SolaceQueueProvisioner solaceQueueProvisioner,
+														  @Nullable SolaceBindingsHealthContributor solaceBindingsHealthContributor,
 														  @Nullable SolaceMeterAccessor solaceMeterAccessor) {
 		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession, context, solaceQueueProvisioner);
 		binder.setExtendedBindingProperties(solaceExtendedBindingProperties);

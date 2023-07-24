@@ -1,8 +1,10 @@
 package com.solace.spring.cloud.stream.binder.config;
 
-import com.solace.spring.cloud.stream.binder.properties.SolaceHealthSessionProperties;
 import com.solace.spring.cloud.stream.binder.health.HealthInvokingSessionEventHandler;
+import com.solace.spring.cloud.stream.binder.health.SolaceBinderHealthContributor;
+import com.solace.spring.cloud.stream.binder.health.SolaceBindingsHealthContributor;
 import com.solace.spring.cloud.stream.binder.health.SolaceSessionHealthIndicator;
+import com.solace.spring.cloud.stream.binder.properties.SolaceHealthSessionProperties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator;
@@ -20,9 +22,25 @@ public class SolaceBinderHealthIndicatorConfiguration {
     private static final Log logger = LogFactory.getLog(SolaceBinderHealthIndicatorConfiguration.class);
 
     @Bean
-    public SolaceSessionHealthIndicator solaceBinderHealthIndicator(SolaceHealthSessionProperties solaceHealthProperties) {
+    public SolaceBinderHealthContributor solaceBinderHealthIndicator(SolaceSessionHealthIndicator solaceSessionHealthIndicator) {
         if (logger.isDebugEnabled()) {
             logger.debug("Creating Solace Binder Health Indicator");
+        }
+        return new SolaceBinderHealthContributor(solaceSessionHealthIndicator, new SolaceBindingsHealthContributor());
+    }
+
+    @Bean
+    public SolaceBindingsHealthContributor solaceBindingsHealthContributor() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Creating Solace Binder Bindings Health Indicator");
+        }
+        return new SolaceBindingsHealthContributor();
+    }
+
+    @Bean
+    public SolaceSessionHealthIndicator solaceBinderSessionIndicator(SolaceHealthSessionProperties solaceHealthProperties) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Creating Solace Binder Session Health Indicator");
         }
         return new SolaceSessionHealthIndicator(solaceHealthProperties);
     }

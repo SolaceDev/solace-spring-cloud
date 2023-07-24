@@ -1,7 +1,6 @@
 package com.solace.spring.cloud.stream.binder.util;
 
 import com.solace.spring.cloud.stream.binder.health.SolaceFlowHealthIndicator;
-import com.solace.spring.cloud.stream.binder.properties.SolaceHealthFlowProperties;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.ClosedFacilityException;
 import com.solacesystems.jcsmp.ConsumerFlowProperties;
@@ -71,7 +70,7 @@ public class FlowReceiverContainer {
 
 	private static final Log logger = LogFactory.getLog(FlowReceiverContainer.class);
 	private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
-	private final SolaceBinderFlowEventHandler eventHandler;
+	private SolaceBinderFlowEventHandler eventHandler;
 
 	public FlowReceiverContainer(JCSMPSession session,
 								 String queueName,
@@ -81,8 +80,6 @@ public class FlowReceiverContainer {
 		this.queueName = queueName;
 		this.endpointProperties = endpointProperties;
 		this.backOff = backOff;
-		this.eventHandler = new SolaceBinderFlowEventHandler(xmlMessageMapper, id.toString(),
-				new SolaceFlowHealthIndicator(new SolaceHealthFlowProperties())); //TODO SOL-79060
 	}
 
 	/**
@@ -592,6 +589,10 @@ public class FlowReceiverContainer {
 
 	public long getRebindWaitTimeout(TimeUnit unit) {
 		return unit.convert(this.rebindWaitTimeout, this.rebindWaitTimeoutUnit);
+	}
+
+	public void createEventHandler(SolaceFlowHealthIndicator solaceFlowHealthIndicator) {
+		this.eventHandler = new SolaceBinderFlowEventHandler(xmlMessageMapper, id.toString(), solaceFlowHealthIndicator);
 	}
 
 	public void pause() {

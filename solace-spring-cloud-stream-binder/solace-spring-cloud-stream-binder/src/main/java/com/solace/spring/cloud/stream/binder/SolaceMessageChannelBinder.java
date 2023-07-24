@@ -1,5 +1,8 @@
 package com.solace.spring.cloud.stream.binder;
 
+import com.solace.spring.cloud.stream.binder.health.SolaceBindingHealthContributor;
+import com.solace.spring.cloud.stream.binder.health.SolaceBindingsHealthContributor;
+import com.solace.spring.cloud.stream.binder.health.SolaceFlowsHealthContributor;
 import com.solace.spring.cloud.stream.binder.inbound.BatchCollector;
 import com.solace.spring.cloud.stream.binder.inbound.JCSMPInboundChannelAdapter;
 import com.solace.spring.cloud.stream.binder.inbound.JCSMPMessageSource;
@@ -55,6 +58,7 @@ public class SolaceMessageChannelBinder
 	private final AtomicBoolean consumersRemoteStopFlag = new AtomicBoolean(false);
 	private final String errorHandlerProducerKey = UUID.randomUUID().toString();
 	private SolaceMeterAccessor solaceMeterAccessor;
+	private SolaceBindingsHealthContributor solaceBindingsHealthContributor;
 	private SolaceExtendedBindingProperties extendedBindingProperties = new SolaceExtendedBindingProperties();
 
 	private final RetryableTaskService taskService = new RetryableTaskService();
@@ -114,6 +118,10 @@ public class SolaceMessageChannelBinder
 				properties,
 				getConsumerEndpointProperties(properties),
 				solaceMeterAccessor);
+
+		if (solaceBindingsHealthContributor != null) {
+			adapter.setSolaceBindingsHealthContributor(solaceBindingsHealthContributor);
+		}
 
 		adapter.setRemoteStopFlag(consumersRemoteStopFlag);
 		adapter.setPostStart(getConsumerPostStart(solaceDestination, properties));
@@ -242,6 +250,10 @@ public class SolaceMessageChannelBinder
 
 	public void setSolaceMeterAccessor(SolaceMeterAccessor solaceMeterAccessor) {
 		this.solaceMeterAccessor = solaceMeterAccessor;
+	}
+
+	public void setBindingsHealthContributor(SolaceBindingsHealthContributor solaceBindingsHealthContributor) {
+		this.solaceBindingsHealthContributor = solaceBindingsHealthContributor;
 	}
 
 	/**

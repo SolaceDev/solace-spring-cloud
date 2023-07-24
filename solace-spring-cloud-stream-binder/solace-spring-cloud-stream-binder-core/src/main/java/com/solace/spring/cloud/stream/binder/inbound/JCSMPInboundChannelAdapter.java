@@ -1,8 +1,13 @@
 package com.solace.spring.cloud.stream.binder.inbound;
 
+import com.solace.spring.cloud.stream.binder.health.SolaceBindingHealthContributor;
+import com.solace.spring.cloud.stream.binder.health.SolaceBindingsHealthContributor;
+import com.solace.spring.cloud.stream.binder.health.SolaceFlowHealthIndicator;
+import com.solace.spring.cloud.stream.binder.health.SolaceFlowsHealthContributor;
 import com.solace.spring.cloud.stream.binder.inbound.acknowledge.JCSMPAcknowledgementCallbackFactory;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
+import com.solace.spring.cloud.stream.binder.properties.SolaceHealthFlowProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceConsumerDestination;
 import com.solace.spring.cloud.stream.binder.util.ErrorQueueInfrastructure;
 import com.solace.spring.cloud.stream.binder.util.FlowReceiverContainer;
@@ -61,6 +66,7 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 	private RetryTemplate retryTemplate;
 	private RecoveryCallback<?> recoveryCallback;
 	private ErrorQueueInfrastructure errorQueueInfrastructure;
+	private SolaceBindingsHealthContributor solaceBindingsHealthContributor;
 
 	private static final Log logger = LogFactory.getLog(JCSMPInboundChannelAdapter.class);
 	private static final ThreadLocal<AttributeAccessor> attributesHolder = new ThreadLocal<>();
@@ -112,9 +118,20 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 		exponentialBackOff.setMaxInterval(consumerProperties.getExtension().getFlowRebindBackOffMaxInterval());
 		exponentialBackOff.setMultiplier(consumerProperties.getExtension().getFlowRebindBackOffMultiplier());
 
+		SolaceBindingHealthContributor bindingsContributor;
+
+		if (solaceBindingsHealthContributor != null) {
+			bindingsContributor =
+					new SolaceBindingHealthContributor(new SolaceFlowsHealthContributor());
+			solaceBindingsHealthContributor.addBindingContributor(consumerProperties.getBindingName(), bindingsContributor);
+		} else {
+			bindingsContributor = null;
+		}
+
 		for (int i = 0, numToCreate = consumerProperties.getConcurrency() - flowReceivers.size(); i < numToCreate; i++) {
 			logger.info(String.format("Creating consumer %s of %s for inbound adapter %s",
 					i + 1, consumerProperties.getConcurrency(), id));
+
 			FlowReceiverContainer flowReceiverContainer = new FlowReceiverContainer(
 					jcsmpSession,
 					queueName,
@@ -122,6 +139,13 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 					exponentialBackOff);
 			flowReceiverContainer.setRebindWaitTimeout(consumerProperties.getExtension().getFlowPreRebindWaitTimeout(),
 					TimeUnit.MILLISECONDS);
+
+			if (bindingsContributor != null) {
+				SolaceFlowHealthIndicator solaceFlowHealthIndicator = new SolaceFlowHealthIndicator(new SolaceHealthFlowProperties()); //TODO Configure properties properly...
+				bindingsContributor.getSolaceFlowsHealthContributor().addFlowContributor("flow-" + i, solaceFlowHealthIndicator);
+				flowReceiverContainer.createEventHandler(solaceFlowHealthIndicator);
+			}
+
 			if (paused.get()) {
 				logger.info(String.format(
 						"Inbound adapter %s is paused, pausing newly created flow receiver container %s",
@@ -184,6 +208,10 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 
 			// cleanup
 			consumerStopFlags.clear();
+
+			if (solaceBindingsHealthContributor != null) {
+				solaceBindingsHealthContributor.removeBindingContributor(consumerProperties.getBindingName());
+			}
 		} catch (InterruptedException e) {
 			String msg = String.format("executor service shutdown for inbound adapter %s was interrupted", id);
 			logger.warn(msg);
@@ -220,6 +248,10 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 
 	public void setRemoteStopFlag(AtomicBoolean remoteStopFlag) {
 		this.remoteStopFlag = remoteStopFlag;
+	}
+
+	public void setSolaceBindingsHealthContributor(SolaceBindingsHealthContributor solaceBindingsHealthContributor) {
+		this.solaceBindingsHealthContributor = solaceBindingsHealthContributor;
 	}
 
 	@Override
