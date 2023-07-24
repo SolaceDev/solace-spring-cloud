@@ -140,12 +140,6 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 			flowReceiverContainer.setRebindWaitTimeout(consumerProperties.getExtension().getFlowPreRebindWaitTimeout(),
 					TimeUnit.MILLISECONDS);
 
-			if (bindingsContributor != null) {
-				SolaceFlowHealthIndicator solaceFlowHealthIndicator = new SolaceFlowHealthIndicator(new SolaceHealthFlowProperties()); //TODO Configure properties properly...
-				bindingsContributor.getSolaceFlowsHealthContributor().addFlowContributor("flow-" + i, solaceFlowHealthIndicator);
-				flowReceiverContainer.createEventHandler(solaceFlowHealthIndicator);
-			}
-
 			if (paused.get()) {
 				logger.info(String.format(
 						"Inbound adapter %s is paused, pausing newly created flow receiver container %s",
@@ -153,6 +147,14 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 				flowReceiverContainer.pause();
 			}
 			flowReceivers.add(flowReceiverContainer);
+		}
+
+		if (bindingsContributor != null) {
+			for (int i = 0; i < flowReceivers.size(); i++) {
+				SolaceFlowHealthIndicator solaceFlowHealthIndicator = new SolaceFlowHealthIndicator(new SolaceHealthFlowProperties()); //TODO Configure properties properly...
+				bindingsContributor.getSolaceFlowsHealthContributor().addFlowContributor("flow-" + i, solaceFlowHealthIndicator);
+				flowReceivers.get(i).createEventHandler(solaceFlowHealthIndicator);
+			}
 		}
 
 		try {
