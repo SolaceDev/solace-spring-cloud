@@ -108,7 +108,9 @@ public class FlowReceiverContainer {
 						.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_CLIENT)
 						.setStartState(!isPaused.get());
 				FlowReceiver flowReceiver = session.createFlow(null, flowProperties, endpointProperties, eventHandler);
-				eventHandler.connected();
+				if (eventHandler != null) {
+					eventHandler.connected();
+				}
 				FlowReceiverReference newFlowReceiverReference = new FlowReceiverReference(flowReceiver);
 				flowReceiverAtomicReference.set(newFlowReceiverReference);
 				xmlMessageMapper.resetIgnoredProperties(id.toString());
