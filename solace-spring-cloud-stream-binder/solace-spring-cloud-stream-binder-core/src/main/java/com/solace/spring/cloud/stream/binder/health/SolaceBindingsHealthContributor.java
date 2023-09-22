@@ -21,8 +21,8 @@ public class SolaceBindingsHealthContributor implements CompositeHealthContribut
 	}
 
 	@Override
-	public HealthContributor getContributor(String name) {
-		return contributors.get(name);
+	public HealthContributor getContributor(String bindingName) {
+		return contributors.get(bindingName);
 	}
 
 	@NotNull

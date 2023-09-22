@@ -177,24 +177,24 @@ public class SolaceFlowHealthIndicatorTest {
 		FlowEventArgs flowEventArgs = new FlowEventArgs(null, "some-info", new RuntimeException("test"), 1);
 		SolaceFlowHealthIndicator healthIndicator = new SolaceFlowHealthIndicator(new SolaceHealthFlowProperties()) {
 			@Override
-			protected Health.Builder buildHealth(Health.Builder builder, Object source, FlowEventArgs flowEventArgs) {
+			protected Health.Builder buildHealth(Health.Builder builder/*, Object source, FlowEventArgs flowEventArgs*/) {
 				return builder.withDetail(customDetail, customDetail).withDetail(overriddenDetail, overriddenDetail);
 			}
 
 			@Override
-			protected Health.Builder buildHealthUp(Health.Builder builder, Object source, FlowEventArgs flowEventArgs) {
-				softly.assertThat(flowEventArgs).isEqualTo(flowEventArgs);
+			protected Health.Builder buildHealthUp(Health.Builder builder/*, Object source, FlowEventArgs flowEventArgs*/) {
+				/*softly.assertThat(flowEventArgs).isEqualTo(flowEventArgs);*/
 				return builder.withDetail(statusCustomDetail, "UP").withDetail(overriddenDetail, "UP");
 			}
 
 			@Override
-			protected Health.Builder buildHealthReconnecting(Health.Builder builder, Object source, FlowEventArgs flowEventArgs) {
+			protected Health.Builder buildHealthReconnecting(Health.Builder builder, /*Object source,*/ FlowEventArgs flowEventArgs) {
 				softly.assertThat(flowEventArgs).isEqualTo(flowEventArgs);
 				return builder.withDetail(statusCustomDetail, "RECONNECTING").withDetail(overriddenDetail, "RECONNECTING");
 			}
 
 			@Override
-			protected Health.Builder buildHealthDown(Health.Builder builder, Object source, FlowEventArgs flowEventArgs) {
+			protected Health.Builder buildHealthDown(Health.Builder builder, /*Object source,*/ FlowEventArgs flowEventArgs) {
 				softly.assertThat(flowEventArgs).isEqualTo(flowEventArgs);
 				return builder.withDetail(statusCustomDetail, "DOWN").withDetail(overriddenDetail, "DOWN");
 			}

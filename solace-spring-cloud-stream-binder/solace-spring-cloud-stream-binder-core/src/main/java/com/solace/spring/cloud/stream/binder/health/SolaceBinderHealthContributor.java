@@ -10,10 +10,10 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SolaceBinderHealthContributor implements CompositeHealthContributor {
-	private SolaceSessionHealthIndicator solaceSessionHealthIndicator;
-	private SolaceBindingsHealthContributor solaceBindingsHealthContributor;
+	private final SolaceSessionHealthIndicator solaceSessionHealthIndicator;
+	private final SolaceBindingsHealthContributor solaceBindingsHealthContributor;
 
-	private static final String SESSION_KEY = "session";
+	private static final String SESSION_KEY = "connection";
 	private static final String BINDINGS_KEY = "bindings";
 
 	public SolaceBinderHealthContributor(SolaceSessionHealthIndicator solaceSessionHealthIndicator,

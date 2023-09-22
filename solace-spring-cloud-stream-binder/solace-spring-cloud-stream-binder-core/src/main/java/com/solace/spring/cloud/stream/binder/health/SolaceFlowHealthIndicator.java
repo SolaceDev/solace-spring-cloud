@@ -41,7 +41,7 @@ public class SolaceFlowHealthIndicator implements HealthIndicator {
 				logger.trace("Reset reconnect count");
 			}
 			reconnectCount.set(0);
-			health.set(buildHealthUp(buildHealth(Health.up(), source, flowEventArgs), source, flowEventArgs).build());
+			health.set(buildHealthUp(buildHealth(Health.up()/*, source, flowEventArgs*/)/*, source, flowEventArgs*/).build());
 		} finally {
 			writeLock.unlock();
 		}
@@ -67,8 +67,8 @@ public class SolaceFlowHealthIndicator implements HealthIndicator {
 				logger.debug(String.format("Solace flow status is %s (attempt %s)", STATUS_RECONNECTING,
 						reconnectAttempt));
 			}
-			health.set(buildHealthReconnecting(buildHealth(Health.status(STATUS_RECONNECTING),
-					source, flowEventArgs), source, flowEventArgs).build());
+			health.set(buildHealthReconnecting(buildHealth(Health.status(STATUS_RECONNECTING)/*,
+					source, flowEventArgs*/), /*source,*/ flowEventArgs).build());
 		} finally {
 			writeLock.unlock();
 		}
@@ -92,33 +92,33 @@ public class SolaceFlowHealthIndicator implements HealthIndicator {
 				}
 				reconnectCount.set(0);
 			}
-			health.set(buildHealthDown(buildHealth(Health.down(), source, flowEventArgs), source, flowEventArgs)
+			health.set(buildHealthDown(buildHealth(Health.down()/*, source, flowEventArgs*/), /*source,*/ flowEventArgs)
 					.build());
 		} finally {
 			writeLock.unlock();
 		}
 	}
 
-	protected Health.Builder buildHealth(Health.Builder builder,
+	protected Health.Builder buildHealth(Health.Builder builder/*,
 										 @Nullable Object source,
-										 @Nullable FlowEventArgs flowEventArgs) {
+										 @Nullable FlowEventArgs flowEventArgs*/) {
 		return builder;
 	}
 
-	protected Health.Builder buildHealthUp(Health.Builder builder,
+	protected Health.Builder buildHealthUp(Health.Builder builder/*,
 										   @Nullable Object source,
-										   @Nullable FlowEventArgs flowEventArgs) {
+										   @Nullable FlowEventArgs flowEventArgs*/) {
 		return builder;
 	}
 
 	protected Health.Builder buildHealthReconnecting(Health.Builder builder,
-													 @Nullable Object source,
+													 /*@Nullable Object source,*/
 													 @Nullable FlowEventArgs flowEventArgs) {
 		return addFlowEventDetails(builder, flowEventArgs);
 	}
 
 	protected Health.Builder buildHealthDown(Health.Builder builder,
-											 @Nullable Object source,
+											 /*@Nullable Object source,*/
 											 @Nullable FlowEventArgs flowEventArgs) {
 		return addFlowEventDetails(builder, flowEventArgs);
 	}
