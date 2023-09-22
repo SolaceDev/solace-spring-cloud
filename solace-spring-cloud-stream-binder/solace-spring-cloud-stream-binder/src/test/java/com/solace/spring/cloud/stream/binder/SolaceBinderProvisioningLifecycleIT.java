@@ -10,9 +10,12 @@ import com.solace.spring.cloud.stream.binder.test.spring.ConsumerInfrastructureU
 import com.solace.spring.cloud.stream.binder.test.spring.SpringCloudStreamContext;
 import com.solace.spring.cloud.stream.binder.test.util.SolaceTestBinder;
 import com.solace.spring.cloud.stream.binder.test.util.ThrowingFunction;
+import com.solace.spring.cloud.stream.binder.util.DestinationType;
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;
 import com.solace.test.integration.semp.v2.config.model.ConfigMsgVpnQueue;
+import com.solace.test.integration.semp.v2.monitor.ApiException;
+import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueue;
 import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueMsg;
 import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueTxFlow;
 import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueTxFlowResponse;
@@ -85,6 +88,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * All tests which modify the default provisioning lifecycle.
@@ -166,7 +170,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
 		consumerProperties.getExtension().setProvisionDurableQueue(false);
-		consumerProperties.getExtension().setProvisionSubscriptionsToDurableQueue(false);
+		consumerProperties.getExtension().setAddDestinationAsSubscriptionToQueue(false);
 
 		Queue queue = JCSMPFactory.onlyInstance().createQueue(SolaceProvisioningUtil
 				.getQueueName(destination0, group0, producerProperties));
@@ -445,7 +449,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 	}
 
 	@Test
-	public void testConsumerProvisionSubscriptionsToDurableQueue(JCSMPSession jcsmpSession,
+	public void testConsumerAddDestinationAsSubscriptionsToDurableQueue(JCSMPSession jcsmpSession,
 																 SpringCloudStreamContext context,
 																 TestInfo testInfo) throws Exception {
 		SolaceTestBinder binder = context.getBinder();
@@ -457,8 +461,8 @@ public class SolaceBinderProvisioningLifecycleIT {
 		String group0 = RandomStringUtils.randomAlphanumeric(10);
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		assertThat(consumerProperties.getExtension().isProvisionSubscriptionsToDurableQueue()).isTrue();
-		consumerProperties.getExtension().setProvisionSubscriptionsToDurableQueue(false);
+		assertThat(consumerProperties.getExtension().isAddDestinationAsSubscriptionToQueue()).isTrue();
+		consumerProperties.getExtension().setAddDestinationAsSubscriptionToQueue(false);
 
 		Binding<MessageChannel> producerBinding = binder.bindProducer(destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 		Binding<MessageChannel> consumerBinding = binder.bindConsumer(destination0, group0, moduleInputChannel, consumerProperties);
@@ -494,7 +498,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 	}
 
 	@Test
-	public void testProducerProvisionSubscriptionsToDurableQueue(JCSMPSession jcsmpSession,
+	public void testProducerAddDestinationAsSubscriptionsToDurableQueue(JCSMPSession jcsmpSession,
 																 SpringCloudStreamContext context,
 																 TestInfo testInfo) throws Exception {
 		SolaceTestBinder binder = context.getBinder();
@@ -506,13 +510,13 @@ public class SolaceBinderProvisioningLifecycleIT {
 		String group0 = RandomStringUtils.randomAlphanumeric(10);
 
 		ExtendedProducerProperties<SolaceProducerProperties> producerProperties = context.createProducerProperties(testInfo);
-		assertThat(producerProperties.getExtension().isProvisionSubscriptionsToDurableQueue()).isTrue();
-		producerProperties.getExtension().setProvisionSubscriptionsToDurableQueue(false);
+		assertThat(producerProperties.getExtension().isAddDestinationAsSubscriptionToQueue()).isTrue();
+		producerProperties.getExtension().setAddDestinationAsSubscriptionToQueue(false);
 		producerProperties.setRequiredGroups(group0);
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
 		consumerProperties.getExtension().setProvisionDurableQueue(false);
-		consumerProperties.getExtension().setProvisionSubscriptionsToDurableQueue(false);
+		consumerProperties.getExtension().setAddDestinationAsSubscriptionToQueue(false);
 
 		Binding<MessageChannel> producerBinding = binder.bindProducer(destination0, moduleOutputChannel, producerProperties);
 		Binding<MessageChannel> consumerBinding = binder.bindConsumer(destination0, group0, moduleInputChannel, consumerProperties);
@@ -548,7 +552,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 	}
 
 	@Test
-	public void testPolledConsumerProvisionSubscriptionsToDurableQueue(JCSMPSession jcsmpSession,
+	public void testPolledConsumerAddDestinationAsSubscriptionsToDurableQueue(JCSMPSession jcsmpSession,
 																	   SpringCloudStreamContext context,
 																	   TestInfo testInfo) throws Exception {
 		SolaceTestBinder binder = context.getBinder();
@@ -560,8 +564,8 @@ public class SolaceBinderProvisioningLifecycleIT {
 		String group0 = RandomStringUtils.randomAlphanumeric(10);
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		assertThat(consumerProperties.getExtension().isProvisionSubscriptionsToDurableQueue()).isTrue();
-		consumerProperties.getExtension().setProvisionSubscriptionsToDurableQueue(false);
+		assertThat(consumerProperties.getExtension().isAddDestinationAsSubscriptionToQueue()).isTrue();
+		consumerProperties.getExtension().setAddDestinationAsSubscriptionToQueue(false);
 
 		Binding<MessageChannel> producerBinding = binder.bindProducer(destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 		Binding<PollableSource<MessageHandler>> consumerBinding = binder.bindPollableConsumer(destination0, group0,
@@ -594,42 +598,6 @@ public class SolaceBinderProvisioningLifecycleIT {
 			gotMessage = moduleInputChannel.poll(message1 -> logger.info(String.format("Received message %s", message1)));
 		}
 		assertThat(gotMessage).isTrue();
-
-		producerBinding.unbind();
-		consumerBinding.unbind();
-	}
-
-	@Test
-	public void testAnonConsumerProvisionSubscriptionsToDurableQueue(SpringCloudStreamContext context, TestInfo testInfo) throws Exception {
-		SolaceTestBinder binder = context.getBinder();
-
-		DirectChannel moduleOutputChannel = context.createBindableChannel("output", new BindingProperties());
-		DirectChannel moduleInputChannel = context.createBindableChannel("input", new BindingProperties());
-
-		String destination0 = RandomStringUtils.randomAlphanumeric(50);
-
-		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		assertThat(consumerProperties.getExtension().isProvisionDurableQueue()).isTrue();
-		consumerProperties.getExtension().setProvisionSubscriptionsToDurableQueue(false); // Expect this parameter to do nothing
-
-		Binding<MessageChannel> producerBinding = binder.bindProducer(destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
-		Binding<MessageChannel> consumerBinding = binder.bindConsumer(destination0, null, moduleInputChannel, consumerProperties);
-
-		Message<?> message = MessageBuilder.withPayload("foo".getBytes())
-				.setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
-				.build();
-
-		context.binderBindUnbindLatency();
-
-		final CountDownLatch latch = new CountDownLatch(1);
-		moduleInputChannel.subscribe(message1 -> {
-			logger.info(String.format("Received message %s", message1));
-			latch.countDown();
-		});
-
-		moduleOutputChannel.send(message);
-		assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
-		TimeUnit.SECONDS.sleep(1); // Give bindings a sec to finish processing successful message consume
 
 		producerBinding.unbind();
 		consumerBinding.unbind();
@@ -1392,7 +1360,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 				destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		consumerProperties.getExtension().setUseGroupNameInQueueName(false);
+		consumerProperties.getExtension().setQueueNameExpression("'scst/' + (isAnonymous ? 'an/' : 'wk/')  + 'plain/' + destination.trim().replaceAll('[*>]', '_')");
 		consumerProperties.getExtension().setAutoBindErrorQueue(true);
 		Binding<MessageChannel> consumerBinding = binder.bindConsumer(
 				destination0, group0, moduleInputChannel, consumerProperties);
@@ -1463,7 +1431,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 				destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		consumerProperties.getExtension().setUseGroupNameInQueueName(false);
+		consumerProperties.getExtension().setQueueNameExpression("'scst/' + (isAnonymous ? 'an/' : 'wk/')  + 'plain/' + destination.trim().replaceAll('[*>]', '_')");
 		consumerProperties.getExtension().setAutoBindErrorQueue(true);
 		Binding<PollableSource<MessageHandler>> consumerBinding = binder.bindPollableConsumer(
 				destination0, group0, moduleInputChannel, consumerProperties);
@@ -1532,7 +1500,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 				destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		consumerProperties.getExtension().setUseGroupNameInQueueName(false);
+		consumerProperties.getExtension().setQueueNameExpression("'scst/' + (isAnonymous ? 'an/' : 'wk/')  + 'plain/' + destination.trim().replaceAll('[*>]', '_')");
 		consumerProperties.getExtension().setAutoBindErrorQueue(true);
 		Binding<MessageChannel> consumerBinding = binder.bindConsumer(
 				destination0, null, moduleInputChannel, consumerProperties);
@@ -1599,7 +1567,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 				destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		consumerProperties.getExtension().setUseGroupNameInErrorQueueName(false);
+		consumerProperties.getExtension().setErrorQueueNameExpression("'scst/error/' + (isAnonymous ? 'an/' : 'wk/') + 'plain/' + destination.trim().replaceAll('[*>]', '_')");
 		consumerProperties.getExtension().setAutoBindErrorQueue(true);
 		Binding<MessageChannel> consumerBinding = binder.bindConsumer(
 				destination0, group0, moduleInputChannel, consumerProperties);
@@ -1668,7 +1636,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 				destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		consumerProperties.getExtension().setUseGroupNameInErrorQueueName(false);
+		consumerProperties.getExtension().setErrorQueueNameExpression("'scst/error/' + (isAnonymous ? 'an/' : 'wk/') + 'plain/' + destination.trim().replaceAll('[*>]', '_')");
 		consumerProperties.getExtension().setAutoBindErrorQueue(true);
 		Binding<MessageChannel> consumerBinding = binder.bindConsumer(
 				destination0, null, moduleInputChannel, consumerProperties);
@@ -1735,7 +1703,8 @@ public class SolaceBinderProvisioningLifecycleIT {
 				destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		consumerProperties.getExtension().setErrorQueueNameOverride(RandomStringUtils.randomAlphanumeric(100));
+		final String givenErrorQueueName = RandomStringUtils.randomAlphanumeric(100);
+		consumerProperties.getExtension().setErrorQueueNameExpression(String.format("'%s'",givenErrorQueueName));
 		consumerProperties.getExtension().setAutoBindErrorQueue(true);
 		Binding<MessageChannel> consumerBinding = binder.bindConsumer(
 				destination0, group0, moduleInputChannel, consumerProperties);
@@ -1751,7 +1720,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 		assertThat(queueName).endsWith('/' + destination0);
 
 		String errorQueueName = binder.getConsumerErrorQueueName(consumerBinding);
-		assertThat(errorQueueName).isEqualTo(consumerProperties.getExtension().getErrorQueueNameOverride());
+		assertThat(errorQueueName).isEqualTo(givenErrorQueueName);
 
 		CountDownLatch latch = new CountDownLatch(consumerProperties.getMaxAttempts());
 		moduleInputChannel.subscribe(message1 -> {
@@ -1805,7 +1774,8 @@ public class SolaceBinderProvisioningLifecycleIT {
 				destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
 
 		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
-		consumerProperties.getExtension().setErrorQueueNameOverride(RandomStringUtils.randomAlphanumeric(100));
+		final String givenErrorQueueName = RandomStringUtils.randomAlphanumeric(100);
+		consumerProperties.getExtension().setErrorQueueNameExpression(String.format("'%s'",givenErrorQueueName));
 		consumerProperties.getExtension().setAutoBindErrorQueue(true);
 		Binding<MessageChannel> consumerBinding = binder.bindConsumer(
 				destination0, null, moduleInputChannel, consumerProperties);
@@ -1820,7 +1790,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 		assertThat(queueName).endsWith('/' + destination0);
 
 		String errorQueueName = binder.getConsumerErrorQueueName(consumerBinding);
-		assertThat(errorQueueName).isEqualTo(consumerProperties.getExtension().getErrorQueueNameOverride());
+		assertThat(errorQueueName).isEqualTo(givenErrorQueueName);
 
 		CountDownLatch latch = new CountDownLatch(consumerProperties.getMaxAttempts());
 		moduleInputChannel.subscribe(message1 -> {
@@ -2150,5 +2120,82 @@ public class SolaceBinderProvisioningLifecycleIT {
 		assertThat(producerBinding.isPaused()).isFalse();
 
 		producerBinding.stop();
+	}
+
+	@Test
+	public void testQueueProvisioningWithProducerDestinationTypeSetToQueue(JCSMPSession jcsmpSession, SpringCloudStreamContext context, SempV2Api sempV2Api,
+																 SoftAssertions softly, TestInfo testInfo) throws Exception {
+		SolaceTestBinder binder = context.getBinder();
+		String vpnName = (String) jcsmpSession.getProperty(JCSMPProperties.VPN_NAME);
+
+		DirectChannel moduleOutputChannel = context.createBindableChannel("output", new BindingProperties());
+
+		String destination = RandomStringUtils.randomAlphanumeric(20);
+
+		ExtendedProducerProperties<SolaceProducerProperties> producerProperties = context.createProducerProperties(testInfo);
+		producerProperties.getExtension().setDestinationType(DestinationType.QUEUE);
+		assertThat(producerProperties.getExtension().isProvisionDurableQueue()).isTrue();
+		assertThat(producerProperties.getExtension().getQueueAccessType()).isEqualTo(EndpointProperties.ACCESSTYPE_NONEXCLUSIVE);
+
+		Queue queue = JCSMPFactory.onlyInstance().createQueue(destination);
+		Binding<MessageChannel> producerBinding = null;
+
+		try {
+			producerBinding = binder.bindProducer(destination, moduleOutputChannel, producerProperties);
+
+			MonitorMsgVpnQueue vpnQueue = sempV2Api.monitor().getMsgVpnQueue(vpnName, destination, null).getData();
+			softly.assertThat(vpnQueue.getQueueName()).isEqualTo(destination);
+			softly.assertThat(vpnQueue.getAccessType()).isEqualTo(MonitorMsgVpnQueue.AccessTypeEnum.NON_EXCLUSIVE);
+		} finally {
+			if (producerBinding != null) producerBinding.unbind();
+			jcsmpSession.deprovision(queue, JCSMPSession.FLAG_IGNORE_DOES_NOT_EXIST);
+		}
+	}
+
+	@Test
+	public void testQueueProvisioningDisabledWithProducerDestinationTypeSetToQueue(JCSMPSession jcsmpSession, SpringCloudStreamContext context, SempV2Api sempV2Api,
+																				   TestInfo testInfo) throws Exception {
+		SolaceTestBinder binder = context.getBinder();
+		String vpnName = (String) jcsmpSession.getProperty(JCSMPProperties.VPN_NAME);
+
+		DirectChannel moduleOutputChannel = context.createBindableChannel("output", new BindingProperties());
+
+		String destination = RandomStringUtils.randomAlphanumeric(20);
+
+		ExtendedProducerProperties<SolaceProducerProperties> producerProperties = context.createProducerProperties(testInfo);
+		producerProperties.getExtension().setDestinationType(DestinationType.QUEUE);
+		producerProperties.getExtension().setProvisionDurableQueue(false);
+
+		Binding<MessageChannel> producerBinding = null;
+		try {
+			Exception provisioningException = assertThrows(ProvisioningException.class, () -> binder.bindProducer(destination, moduleOutputChannel, producerProperties));
+			assertThat(provisioningException)
+					.hasMessageContaining(
+							String.format("Failed to connect test consumer flow to queue %s. Provisioning is disabled, queue was not provisioned nor was its configuration validated.", destination));
+			ApiException apiException = assertThrows(ApiException.class, () -> sempV2Api.monitor().getMsgVpnQueue(vpnName, destination, null));
+			assertThat(apiException.getCode()).isEqualTo(400);
+		} finally {
+			if (producerBinding != null) producerBinding.unbind();
+		}
+	}
+
+	@Test
+	public void testProducerDestinationTypeSetToQueueWithRequiredGroups(SpringCloudStreamContext context, TestInfo testInfo) throws Exception {
+		SolaceTestBinder binder = context.getBinder();
+		DirectChannel moduleOutputChannel = context.createBindableChannel("output", new BindingProperties());
+		String destination = RandomStringUtils.randomAlphanumeric(20);
+
+		ExtendedProducerProperties<SolaceProducerProperties> producerProperties = context.createProducerProperties(testInfo);
+		producerProperties.setRequiredGroups("group-A");
+		producerProperties.getExtension().setDestinationType(DestinationType.QUEUE);
+
+		Binding<MessageChannel> producerBinding = null;
+		try {
+			Exception provisioningException = assertThrows(ProvisioningException.class, () -> binder.bindProducer(destination, moduleOutputChannel, producerProperties));
+			assertThat(provisioningException)
+					.hasMessageContaining("Producer requiredGroups are not supported when destinationType=QUEUE");
+		} finally {
+			if (producerBinding != null) producerBinding.unbind();
+		}
 	}
 }

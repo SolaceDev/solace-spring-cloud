@@ -1,5 +1,6 @@
 package com.solace.spring.cloud.stream.binder.properties;
 
+import com.solace.spring.cloud.stream.binder.util.DestinationType;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;
@@ -14,12 +15,17 @@ import static com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBin
 public class SolaceProducerProperties extends SolaceCommonProperties {
 
 	/**
+	 * The type of destination messages are published to.
+	 */
+	private DestinationType destinationType = DestinationType.TOPIC;
+
+	/**
 	 * A SpEL expression for creating the consumer group’s queue name.
 	 * Modifying this can cause naming conflicts between the queue names of consumer groups.
 	 * While the default SpEL expression will consistently return a value adhering to <<Generated Queue Name Syntax>>,
 	 * directly using the SpEL expression string is not supported. The default value for this config option is subject to change without notice.
 	 */
-	private String queueNameExpression = "(properties.solace.queueNamePrefix?.trim()?.length() > 0 ? properties.solace.queueNamePrefix.trim() + '/' : '') + (properties.solace.useFamiliarityInQueueName ? (isAnonymous ? 'an' : 'wk') + '/' : '') + group?.trim() + '/' + (properties.solace.useDestinationEncodingInQueueName ? 'plain' + '/' : '') + destination.trim().replaceAll('[*>]', '_')";
+	private String queueNameExpression = "'scst/' + (isAnonymous ? 'an/' : 'wk/') + (group?.trim() + '/') + 'plain/' + destination.trim().replaceAll('[*>]', '_')";
 
 	/**
 	 * A mapping of required consumer groups to queue name SpEL expressions.
@@ -42,6 +48,14 @@ public class SolaceProducerProperties extends SolaceCommonProperties {
 	 * When set to true, irreversibly convert non-serializable headers to strings. An exception is thrown otherwise.
 	 */
 	private boolean nonserializableHeaderConvertToString = false;
+
+	public DestinationType getDestinationType() {
+		return destinationType;
+	}
+
+	public void setDestinationType(DestinationType destinationType) {
+		this.destinationType = destinationType;
+	}
 
 	public String getQueueNameExpression() {
 		return queueNameExpression;
