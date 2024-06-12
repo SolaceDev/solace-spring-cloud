@@ -1,7 +1,11 @@
 package com.solace.spring.cloud.stream.binder.properties;
 
 import com.solacesystems.jcsmp.EndpointProperties;
+import lombok.Getter;
+import lombok.Setter;
 
+@Setter
+@Getter
 public class SolaceCommonProperties {
 	/**
 	 * Whether to provision durable queues for non-anonymous consumer groups.
@@ -43,77 +47,4 @@ public class SolaceCommonProperties {
 	 * Whether the consumer group queue respects Message TTL.
 	 */
 	private Boolean queueRespectsMsgTtl = null;
-	// ------------------------
-
-	public boolean isProvisionDurableQueue() {
-		return provisionDurableQueue;
-	}
-
-	public void setProvisionDurableQueue(boolean provisionDurableQueue) {
-		this.provisionDurableQueue = provisionDurableQueue;
-	}
-
-	public boolean isAddDestinationAsSubscriptionToQueue() {
-		return addDestinationAsSubscriptionToQueue;
-	}
-
-	public void setAddDestinationAsSubscriptionToQueue(boolean addDestinationAsSubscriptionToQueue) {
-		this.addDestinationAsSubscriptionToQueue = addDestinationAsSubscriptionToQueue;
-	}
-
-	public int getQueueAccessType() {
-		return queueAccessType;
-	}
-
-	public void setQueueAccessType(int queueAccessType) {
-		this.queueAccessType = queueAccessType;
-	}
-
-	public int getQueuePermission() {
-		return queuePermission;
-	}
-
-	public void setQueuePermission(int queuePermission) {
-		this.queuePermission = queuePermission;
-	}
-
-	public Integer getQueueDiscardBehaviour() {
-		return queueDiscardBehaviour;
-	}
-
-	public void setQueueDiscardBehaviour(Integer queueDiscardBehaviour) {
-		this.queueDiscardBehaviour = queueDiscardBehaviour;
-	}
-
-	public Integer getQueueMaxMsgRedelivery() {
-		return queueMaxMsgRedelivery;
-	}
-
-	public void setQueueMaxMsgRedelivery(Integer queueMaxMsgRedelivery) {
-		this.queueMaxMsgRedelivery = queueMaxMsgRedelivery;
-	}
-
-	public Integer getQueueMaxMsgSize() {
-		return queueMaxMsgSize;
-	}
-
-	public void setQueueMaxMsgSize(Integer queueMaxMsgSize) {
-		this.queueMaxMsgSize = queueMaxMsgSize;
-	}
-
-	public Integer getQueueQuota() {
-		return queueQuota;
-	}
-
-	public void setQueueQuota(Integer queueQuota) {
-		this.queueQuota = queueQuota;
-	}
-
-	public Boolean getQueueRespectsMsgTtl() {
-		return queueRespectsMsgTtl;
-	}
-
-	public void setQueueRespectsMsgTtl(Boolean queueRespectsMsgTtl) {
-		this.queueRespectsMsgTtl = queueRespectsMsgTtl;
-	}
 }

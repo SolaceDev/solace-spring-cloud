@@ -22,6 +22,7 @@ import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueTxFlo
 import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.*;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,7 +64,7 @@ import java.util.stream.IntStream;
 import static com.solace.spring.cloud.stream.binder.test.util.RetryableAssertions.retryAssert;
 import static com.solace.spring.cloud.stream.binder.test.util.SolaceSpringCloudStreamAssertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -87,6 +88,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
     @AfterEach
     void tearDown() {
+        super.cleanup();
         close();
     }
 
@@ -105,12 +107,12 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
      *
      * @see #testSendAndReceive(TestInfo)
      */
-    @CartesianTest(name = "[{index}] channelType={0}, batchMode={1}")
+    @CartesianTest(name = "[{index}] channelType={0}, batchMode={1}, transactedProducer={2}")
     @Execution(ExecutionMode.CONCURRENT)
     public <T> void testSendAndReceive(
             @Values(classes = {DirectChannel.class, PollableSource.class}) Class<T> channelType,
             @Values(booleans = {false, true}) boolean batchMode,
-            JCSMPProperties jcsmpProperties,
+            @Values(booleans = {false, true}) boolean transactedProducer,
             SempV2Api sempV2Api,
             SoftAssertions softly,
             TestInfo testInfo) throws Exception {
@@ -122,8 +124,11 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         String destination0 = RandomStringUtils.randomAlphanumeric(10);
 
+        ExtendedProducerProperties<SolaceProducerProperties> producerProperties = createProducerProperties(testInfo);
+        producerProperties.getExtension().setTransacted(transactedProducer);
         Binding<MessageChannel> producerBinding = binder.bindProducer(
-                destination0, moduleOutputChannel, createProducerProperties(testInfo));
+                destination0, moduleOutputChannel, producerProperties);
+
         ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = createConsumerProperties();
         consumerProperties.setBatchMode(batchMode);
         Binding<T> consumerBinding = consumerInfrastructureUtil.createBinding(binder,
@@ -142,11 +147,32 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                 () -> messages.forEach(moduleOutputChannel::send),
                 msg -> softly.assertThat(msg).satisfies(isValidMessage(consumerProperties, messages)));
 
+        String vpnName = (String) getJcsmpSession().getProperty(JCSMPProperties.VPN_NAME);
+
         retryAssert(() -> assertThat(sempV2Api.monitor()
-                .getMsgVpnQueueMsgs(jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME),
-                        binder.getConsumerQueueName(consumerBinding), 2, null, null, null)
-                .getData())
-                .hasSize(0));
+                .getMsgVpnQueueMsgs(vpnName, binder.getConsumerQueueName(consumerBinding), 2, null, null, null)
+                .getData()).hasSize(0));
+
+        if (transactedProducer) {
+            String clientName = (String) getJcsmpSession().getProperty(JCSMPProperties.CLIENT_NAME);
+            assertThat(sempV2Api.monitor().getMsgVpnClientRxFlows(vpnName, clientName, null, null, null, null)
+                    .getData())
+                    .filteredOn(f -> f.getSessionName() != null)
+                    .singleElement()
+                    .satisfies(
+                            f -> assertThat(f.getGuaranteedMsgCount()).isEqualTo(messages.size()),
+                            f -> assertThat(sempV2Api.monitor().getMsgVpnClientTransactedSession(
+                                            vpnName, clientName, f.getSessionName(), null)
+                                    .getData())
+                                    .satisfies(
+                                            s -> assertThat(s.getSuccessCount()).isEqualTo(messages.size()),
+                                            s -> assertThat(s.getCommitCount()).isEqualTo(messages.size()),
+                                            s -> assertThat(s.getFailureCount()).isEqualTo(0),
+                                            s -> assertThat(s.getPublishedMsgCount()).isEqualTo(messages.size()),
+                                            s -> assertThat(s.getPendingPublishedMsgCount()).isEqualTo(0)
+                                    )
+                    );
+        }
 
         producerBinding.unbind();
         consumerBinding.unbind();
@@ -167,7 +193,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         T moduleInputChannel = consumerInfrastructureUtil.createChannel("input", new BindingProperties());
 
         String destination0 = RandomStringUtils.randomAlphanumeric(10);
-        String group0 = namedConsumerGroup ? RandomStringUtils.randomAlphanumeric(10): null;
+        String group0 = namedConsumerGroup ? RandomStringUtils.randomAlphanumeric(10) : null;
 
         Binding<MessageChannel> producerBinding = binder.bindProducer(
                 destination0, moduleOutputChannel, createProducerProperties(testInfo));
@@ -208,9 +234,12 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         consumerBinding.unbind();
     }
 
-    @Test
+    @CartesianTest(name = "[{index}] transacted={0}")
     @Execution(ExecutionMode.CONCURRENT)
-    public void testProducerErrorChannel(JCSMPSession jcsmpSession, TestInfo testInfo) throws Exception {
+    public void testProducerErrorChannel(
+            @Values(booleans = {false, true}) boolean transacted,
+            JCSMPSession jcsmpSession,
+            TestInfo testInfo) throws Exception {
         SolaceTestBinder binder = getBinder();
 
         DirectChannel moduleOutputChannel = createBindableChannel("output", new BindingProperties());
@@ -220,6 +249,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                 getDestinationNameDelimiter(), destination0, getDestinationNameDelimiter());
 
         ExtendedProducerProperties<SolaceProducerProperties> producerProps = createProducerProperties(testInfo);
+        producerProps.getExtension().setTransacted(transacted);
         producerProps.setErrorChannelEnabled(true);
         producerProps.populateBindingName(destination0);
         Binding<MessageChannel> producerBinding = binder.bindProducer(destination0, moduleOutputChannel, producerProps);
@@ -244,17 +274,24 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         jcsmpSession.closeSession();
 
-        try {
-            moduleOutputChannel.send(message);
-            fail("Expected the producer to fail to send the message...");
-        } catch (Exception e) {
-            logger.info("Successfully threw an exception during message publishing!");
-        }
+        assertThatThrownBy(() -> moduleOutputChannel.send(message));
 
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
-        assertThat(errorMessage.get()).isInstanceOf(ErrorMessage.class);
-        assertThat(errorMessage.get().getPayload()).isInstanceOf(MessagingException.class);
-        assertThat((MessagingException) errorMessage.get().getPayload()).hasCauseInstanceOf(ClosedFacilityException.class);
+        assertThat(errorMessage.get())
+                .asInstanceOf(InstanceOfAssertFactories.type(ErrorMessage.class))
+                .extracting(ErrorMessage::getPayload)
+                .asInstanceOf(InstanceOfAssertFactories.throwable(MessagingException.class))
+                .cause()
+                .isInstanceOf(ClosedFacilityException.class)
+                .satisfies(e -> {
+                    if (transacted) {
+                        assertThat(e.getSuppressed())
+                                .singleElement()
+                                .asInstanceOf(InstanceOfAssertFactories.throwable(ClosedFacilityException.class))
+                                .hasMessageContaining("Operation ROLLBACK disallowed");
+                    }
+                });
+
         producerBinding.unbind();
     }
 
@@ -273,7 +310,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         T moduleInputChannel = consumerInfrastructureUtil.createChannel("input", new BindingProperties());
 
         String destination0 = RandomStringUtils.randomAlphanumeric(10);
-        String group0 = namedConsumerGroup ? RandomStringUtils.randomAlphanumeric(10): null;
+        String group0 = namedConsumerGroup ? RandomStringUtils.randomAlphanumeric(10) : null;
 
         Binding<MessageChannel> producerBinding = binder.bindProducer(
                 destination0, moduleOutputChannel, createProducerProperties(testInfo));
@@ -328,7 +365,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         T moduleInputChannel = consumerInfrastructureUtil.createChannel("input", new BindingProperties());
 
         String destination0 = RandomStringUtils.randomAlphanumeric(10);
-        String group0 = namedConsumerGroup ? RandomStringUtils.randomAlphanumeric(10): null;
+        String group0 = namedConsumerGroup ? RandomStringUtils.randomAlphanumeric(10) : null;
 
         String vpnName = (String) jcsmpSession.getProperty(JCSMPProperties.VPN_NAME);
 
@@ -339,7 +376,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         consumerProperties.setBatchMode(batchMode);
         consumerProperties.getExtension().setAutoBindErrorQueue(true);
         Binding<T> consumerBinding = consumerInfrastructureUtil.createBinding(binder,
-                destination0,group0, moduleInputChannel, consumerProperties);
+                destination0, group0, moduleInputChannel, consumerProperties);
 
         List<Message<?>> messages = IntStream.range(0,
                         batchMode ? consumerProperties.getExtension().getBatchMaxSize() : 1)
@@ -957,11 +994,11 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         String queueName = binder.getConsumerQueueName(consumerBinding);
 
-        assertEquals(defaultWindowSize, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(defaultWindowSize, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
         consumerBinding.pause();
-        assertEquals(0, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(0, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
         consumerBinding.resume();
-        assertEquals(defaultWindowSize, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(defaultWindowSize, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
 
         consumerBinding.unbind();
     }
@@ -992,12 +1029,12 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         consumerBinding.pause();
         assertThat(consumerBinding.isRunning()).isFalse();
         assertThat(consumerBinding.isPaused()).isTrue();
-        assertThat(getTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
+        assertThat(getQueueTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
 
         consumerBinding.start();
         assertThat(consumerBinding.isRunning()).isTrue();
         assertThat(consumerBinding.isPaused()).isTrue();
-        assertThat(getTxFlows(sempV2Api, vpnName, queueName, 1))
+        assertThat(getQueueTxFlows(sempV2Api, vpnName, queueName, 1))
                 .hasSize(1)
                 .allSatisfy(flow -> assertThat(flow.getWindowSize()).isEqualTo(0));
 
@@ -1021,13 +1058,13 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         String queueName = binder.getConsumerQueueName(consumerBinding);
         consumerBinding.pause();
-        assertEquals(0, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(0, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
 
         consumerBinding.stop();
-        assertThat(getTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
+        assertThat(getQueueTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
         consumerBinding.start();
         //Newly created flow is started in the pause state
-        assertEquals(0, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(0, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
 
         consumerBinding.unbind();
     }
@@ -1050,11 +1087,11 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         String queueName = binder.getConsumerQueueName(consumerBinding);
 
         consumerBinding.stop();
-        assertThat(getTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
+        assertThat(getQueueTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
         consumerBinding.pause();
-        assertThat(getTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
+        assertThat(getQueueTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
         consumerBinding.start();
-        assertEquals(0, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(0, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
 
         consumerBinding.unbind();
     }
@@ -1079,11 +1116,11 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         consumerBinding.pause();
         consumerBinding.stop();
-        assertThat(getTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
+        assertThat(getQueueTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
         consumerBinding.resume();
-        assertThat(getTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
+        assertThat(getQueueTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
         consumerBinding.start();
-        assertEquals(defaultWindowSize, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(defaultWindowSize, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
 
         consumerBinding.unbind();
     }
@@ -1107,11 +1144,11 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         String queueName = binder.getConsumerQueueName(consumerBinding);
 
         consumerBinding.stop();
-        assertThat(getTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
+        assertThat(getQueueTxFlows(sempV2Api, vpnName, queueName, 1)).hasSize(0);
         consumerBinding.pause(); //Has no effect
         consumerBinding.resume(); //Has no effect
         consumerBinding.start();
-        assertEquals(defaultWindowSize, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(defaultWindowSize, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
 
         consumerBinding.unbind();
     }
@@ -1134,7 +1171,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         String queueName = binder.getConsumerQueueName(consumerBinding);
 
         consumerBinding.pause();
-        assertEquals(0, getTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
+        assertEquals(0, getQueueTxFlows(sempV2Api, vpnName, queueName, 1).get(0).getWindowSize());
         getJcsmpSession().closeSession();
         RuntimeException exception = assertThrows(RuntimeException.class, consumerBinding::resume);
         assertThat(exception).hasRootCauseInstanceOf(ClosedFacilityException.class);
@@ -1297,8 +1334,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         consumerBinding.unbind();
     }
 
-
-    private List<MonitorMsgVpnQueueTxFlow> getTxFlows(SempV2Api sempV2Api, String vpnName, String queueName, Integer count) throws ApiException {
+    private List<MonitorMsgVpnQueueTxFlow> getQueueTxFlows(SempV2Api sempV2Api, String vpnName, String queueName, Integer count) throws ApiException {
         return sempV2Api.monitor()
                 .getMsgVpnQueueTxFlows(vpnName, queueName, count, null, null, null)
                 .getData();
