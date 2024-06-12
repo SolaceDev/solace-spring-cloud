@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.0] - 2024-06-12
+### Changed
+- By Solace #290 migrate to producer bindings to use JCSMP producer flows
+- By Solace #269 give consumer binding threads readable names
+- By Solace #294 DATAGO-76828: add transacted producer support
+- Bump versions to spring boot 3.3.0 and spring cloud 2023.0.2
+
 ## [4.0.1] - 2024-05-13
 ### Fixed
 
