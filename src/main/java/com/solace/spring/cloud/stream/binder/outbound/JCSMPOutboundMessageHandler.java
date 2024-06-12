@@ -3,13 +3,9 @@ package com.solace.spring.cloud.stream.binder.outbound;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
-import com.solace.spring.cloud.stream.binder.util.ClosedChannelBindingException;
-import com.solace.spring.cloud.stream.binder.util.CorrelationData;
-import com.solace.spring.cloud.stream.binder.util.DestinationType;
-import com.solace.spring.cloud.stream.binder.util.ErrorChannelSendingCorrelationKey;
-import com.solace.spring.cloud.stream.binder.util.JCSMPSessionProducerManager;
-import com.solace.spring.cloud.stream.binder.util.XMLMessageMapper;
+import com.solace.spring.cloud.stream.binder.util.*;
 import com.solacesystems.jcsmp.*;
+import lombok.Setter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.binder.BinderHeaders;
@@ -27,167 +23,186 @@ import org.springframework.util.StringUtils;
 import java.util.UUID;
 
 public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
-	private final String id = UUID.randomUUID().toString();
-	private final DestinationType configDestinationType;
-	private final Destination configDestination;
-	private final JCSMPSession jcsmpSession;
-	private final MessageChannel errorChannel;
-	private final JCSMPSessionProducerManager producerManager;
-	private final ExtendedProducerProperties<SolaceProducerProperties> properties;
-	@Nullable private final SolaceMeterAccessor solaceMeterAccessor;
-	private XMLMessageProducer producer;
-	private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
-	private boolean isRunning = false;
-	private ErrorMessageStrategy errorMessageStrategy;
+    private final String id = UUID.randomUUID().toString();
+    private final DestinationType configDestinationType;
+    private final Destination configDestination;
+    private final JCSMPSession jcsmpSession;
+    private final MessageChannel errorChannel;
+    private final JCSMPSessionProducerManager producerManager;
+    private final ExtendedProducerProperties<SolaceProducerProperties> properties;
+    @Nullable
+    private final SolaceMeterAccessor solaceMeterAccessor;
+    private XMLMessageProducer producer;
+    private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
+    private boolean isRunning = false;
+    @Setter
+    private ErrorMessageStrategy errorMessageStrategy;
 
-	private static final Log logger = LogFactory.getLog(JCSMPOutboundMessageHandler.class);
+    private static final Log logger = LogFactory.getLog(JCSMPOutboundMessageHandler.class);
 
-	public JCSMPOutboundMessageHandler(ProducerDestination destination,
-									   JCSMPSession jcsmpSession,
-									   MessageChannel errorChannel,
-									   JCSMPSessionProducerManager producerManager,
-									   ExtendedProducerProperties<SolaceProducerProperties> properties,
-									   @Nullable SolaceMeterAccessor solaceMeterAccessor) {
-		this.configDestinationType = properties.getExtension().getDestinationType();
-		this.configDestination = configDestinationType == DestinationType.TOPIC ?
-				JCSMPFactory.onlyInstance().createTopic(destination.getName()) :
-				JCSMPFactory.onlyInstance().createQueue(destination.getName());
-		this.jcsmpSession = jcsmpSession;
-		this.errorChannel = errorChannel;
-		this.producerManager = producerManager;
-		this.properties = properties;
-		this.solaceMeterAccessor = solaceMeterAccessor;
-	}
+    public JCSMPOutboundMessageHandler(ProducerDestination destination,
+                                       JCSMPSession jcsmpSession,
+                                       MessageChannel errorChannel,
+                                       JCSMPSessionProducerManager producerManager,
+                                       ExtendedProducerProperties<SolaceProducerProperties> properties,
+                                       @Nullable SolaceMeterAccessor solaceMeterAccessor) {
+        this.configDestinationType = properties.getExtension().getDestinationType();
+        this.configDestination = configDestinationType == DestinationType.TOPIC ?
+                JCSMPFactory.onlyInstance().createTopic(destination.getName()) :
+                JCSMPFactory.onlyInstance().createQueue(destination.getName());
+        this.jcsmpSession = jcsmpSession;
+        this.errorChannel = errorChannel;
+        this.producerManager = producerManager;
+        this.properties = properties;
+        this.solaceMeterAccessor = solaceMeterAccessor;
+    }
 
-	@Override
-	public void handleMessage(Message<?> message) throws MessagingException {
-		ErrorChannelSendingCorrelationKey correlationKey = new ErrorChannelSendingCorrelationKey(message,
-				errorChannel, errorMessageStrategy);
+    @Override
+    public void handleMessage(Message<?> message) throws MessagingException {
+        ErrorChannelSendingCorrelationKey correlationKey = new ErrorChannelSendingCorrelationKey(message,
+                errorChannel, errorMessageStrategy);
 
-		if (! isRunning()) {
-			String msg0 = String.format("Cannot send message using handler %s", id);
-			String msg1 = String.format("Message handler %s is not running", id);
-			throw handleMessagingException(correlationKey, msg0, new ClosedChannelBindingException(msg1));
-		}
+        if (!isRunning()) {
+            String msg0 = String.format("Cannot send message using handler %s", id);
+            String msg1 = String.format("Message handler %s is not running", id);
+            throw handleMessagingException(correlationKey, msg0, new ClosedChannelBindingException(msg1));
+        }
 
-		Destination targetDestination = checkDynamicDestination(message, correlationKey);
-		if (targetDestination == null) {
-			targetDestination = configDestination;
-		}
+        Destination targetDestination = checkDynamicDestination(message, correlationKey);
+        if (targetDestination == null) {
+            targetDestination = configDestination;
+        }
 
-		try {
-			CorrelationData correlationData = message.getHeaders().get(SolaceBinderHeaders.CONFIRM_CORRELATION, CorrelationData.class);
-			if (correlationData != null) {
+        try {
+            CorrelationData correlationData = message.getHeaders().get(SolaceBinderHeaders.CONFIRM_CORRELATION, CorrelationData.class);
+            if (correlationData != null) {
                 if (properties.getExtension().getDeliveryMode() != DeliveryMode.PERSISTENT) {
                     String msg0 = String.format("Cannot send message using handler %s", id);
                     String msg1 = "CONFIRM_CORRELATION is not supported, because the channel is configured as deliveryMode!=PERSISTENT.";
                     throw handleMessagingException(correlationKey, msg0, new IllegalArgumentException(msg1));
                 }
-				correlationData.setMessage(message);
-				correlationKey.setConfirmCorrelation(correlationData);
-			}
-		} catch (IllegalArgumentException e) {
-			throw handleMessagingException(correlationKey,
-					String.format("Unable to parse header %s", SolaceBinderHeaders.CONFIRM_CORRELATION), e);
-		}
+                correlationData.setMessage(message);
+                correlationKey.setConfirmCorrelation(correlationData);
+            }
+        } catch (IllegalArgumentException e) {
+            throw handleMessagingException(correlationKey,
+                    String.format("Unable to parse header %s", SolaceBinderHeaders.CONFIRM_CORRELATION), e);
+        }
 
-		XMLMessage xmlMessage = xmlMessageMapper.map(
+        XMLMessage xmlMessage = xmlMessageMapper.map(
                 message,
                 properties.getExtension().getHeaderExclusions(),
-				properties.getExtension().isNonserializableHeaderConvertToString(),
+                properties.getExtension().isNonserializableHeaderConvertToString(),
                 properties.getExtension().getDeliveryMode()
         );
-		correlationKey.setRawMessage(xmlMessage);
-		xmlMessage.setCorrelationKey(correlationKey);
+        correlationKey.setRawMessage(xmlMessage);
+        xmlMessage.setCorrelationKey(correlationKey);
 
-		if (logger.isDebugEnabled()) {
-			logger.debug(String.format("Publishing message to destination [ %s:%s ]", targetDestination instanceof Topic ? "TOPIC" : "QUEUE", targetDestination));
-		}
+        if (logger.isDebugEnabled()) {
+            logger.debug(String.format("Publishing message to destination [ %s:%s ]", targetDestination instanceof Topic ? "TOPIC" : "QUEUE", targetDestination));
+        }
 
-		try {
-			producer.send(xmlMessage, targetDestination);
-		} catch (JCSMPException e) {
-			throw handleMessagingException(correlationKey,
-					String.format("Unable to send message to destination %s %s",
-							targetDestination instanceof Topic ? "TOPIC" : "QUEUE", targetDestination.getName()), e);
-		} finally {
-			if (solaceMeterAccessor != null) {
-				solaceMeterAccessor.recordMessage(properties.getBindingName(), xmlMessage);
-			}
-		}
-	}
+        try {
+            producer.send(xmlMessage, targetDestination);
+        } catch (JCSMPException e) {
+            throw handleMessagingException(correlationKey,
+                    String.format("Unable to send message to destination %s %s",
+                            targetDestination instanceof Topic ? "TOPIC" : "QUEUE", targetDestination.getName()), e);
+        } finally {
+            if (solaceMeterAccessor != null) {
+                solaceMeterAccessor.recordMessage(properties.getBindingName(), xmlMessage);
+            }
+        }
+    }
 
-	private Destination checkDynamicDestination(Message<?> message, ErrorChannelSendingCorrelationKey correlationKey) {
-		try {
-			String dynamicDestName;
-			String targetDestinationHeader = message.getHeaders().get(BinderHeaders.TARGET_DESTINATION, String.class);
-			if (StringUtils.hasText(targetDestinationHeader)) {
-				dynamicDestName = targetDestinationHeader.trim();
-			} else {
-				return null;
-			}
+    private Destination checkDynamicDestination(Message<?> message, ErrorChannelSendingCorrelationKey correlationKey) {
+        try {
+            String dynamicDestName;
+            String targetDestinationHeader = message.getHeaders().get(BinderHeaders.TARGET_DESTINATION, String.class);
+            if (StringUtils.hasText(targetDestinationHeader)) {
+                dynamicDestName = targetDestinationHeader.trim();
+            } else {
+                return null;
+            }
 
-			String targetDestinationTypeHeader = message.getHeaders().get(SolaceBinderHeaders.TARGET_DESTINATION_TYPE, String.class);
-			if (StringUtils.hasText(targetDestinationTypeHeader)) {
-				targetDestinationTypeHeader = targetDestinationTypeHeader.trim().toUpperCase();
-				if (targetDestinationTypeHeader.equals(DestinationType.TOPIC.name())) {
-					return JCSMPFactory.onlyInstance().createTopic(dynamicDestName);
-				} else if (targetDestinationTypeHeader.equals(DestinationType.QUEUE.name())) {
-					return JCSMPFactory.onlyInstance().createQueue(dynamicDestName);
-				} else {
-					throw new IllegalArgumentException(String.format("Incorrect value specified for header '%s'. Expected [ %s|%s ] but actual value is [ %s ]",
-							SolaceBinderHeaders.TARGET_DESTINATION_TYPE, DestinationType.TOPIC.name(), DestinationType.QUEUE.name(), targetDestinationTypeHeader));
-				}
-			}
+            String targetDestinationTypeHeader = message.getHeaders().get(SolaceBinderHeaders.TARGET_DESTINATION_TYPE, String.class);
+            if (StringUtils.hasText(targetDestinationTypeHeader)) {
+                targetDestinationTypeHeader = targetDestinationTypeHeader.trim().toUpperCase();
+                if (targetDestinationTypeHeader.equals(DestinationType.TOPIC.name())) {
+                    return JCSMPFactory.onlyInstance().createTopic(dynamicDestName);
+                } else if (targetDestinationTypeHeader.equals(DestinationType.QUEUE.name())) {
+                    return JCSMPFactory.onlyInstance().createQueue(dynamicDestName);
+                } else {
+                    throw new IllegalArgumentException(String.format("Incorrect value specified for header '%s'. Expected [ %s|%s ] but actual value is [ %s ]",
+                            SolaceBinderHeaders.TARGET_DESTINATION_TYPE, DestinationType.TOPIC.name(), DestinationType.QUEUE.name(), targetDestinationTypeHeader));
+                }
+            }
 
-			//No dynamic destinationType present so use configured destinationType
-			return configDestinationType == DestinationType.TOPIC ?
-					JCSMPFactory.onlyInstance().createTopic(dynamicDestName) :
-					JCSMPFactory.onlyInstance().createQueue(dynamicDestName);
-		} catch (Exception e) {
-			throw handleMessagingException(correlationKey, "Unable to parse headers", e);
-		}
-	}
+            //No dynamic destinationType present so use configured destinationType
+            return configDestinationType == DestinationType.TOPIC ?
+                    JCSMPFactory.onlyInstance().createTopic(dynamicDestName) :
+                    JCSMPFactory.onlyInstance().createQueue(dynamicDestName);
+        } catch (Exception e) {
+            throw handleMessagingException(correlationKey, "Unable to parse headers", e);
+        }
+    }
 
-	@Override
-	public void start() {
-		logger.info(String.format("Creating producer to %s %s <message handler ID: %s>", configDestinationType, configDestination.getName(), id));
-		if (isRunning()) {
-			logger.warn(String.format("Nothing to do, message handler %s is already running", id));
-			return;
-		}
+    @Override
+    public void start() {
+        logger.info(String.format("Creating producer to %s %s <message handler ID: %s>", configDestinationType, configDestination.getName(), id));
+        if (isRunning()) {
+            logger.warn(String.format("Nothing to do, message handler %s is already running", id));
+            return;
+        }
 
-		try {
-			producer = producerManager.get(id);
-		} catch (Exception e) {
-			String msg = String.format("Unable to get a message producer for session %s", jcsmpSession.getSessionName());
-			logger.warn(msg, e);
-			throw new RuntimeException(msg, e);
-		}
+        try {
+            producerManager.get(id);
+            producer = jcsmpSession.createProducer(getProducerFlowProperties(jcsmpSession),
+                    new JCSMPSessionProducerManager.CloudStreamEventHandler());
+        } catch (Exception e) {
+            String msg = String.format("Unable to get a message producer for session %s", jcsmpSession.getSessionName());
+            logger.warn(msg, e);
+            throw new RuntimeException(msg, e);
+        }
 
-		isRunning = true;
-	}
+        isRunning = true;
+    }
 
-	@Override
-	public void stop() {
-		if (!isRunning()) return;
-		logger.info(String.format("Stopping producer to %s %s <message handler ID: %s>", configDestinationType, configDestination.getName(), id));
-		producerManager.release(id);
-		isRunning = false;
-	}
+    @Override
+    public void stop() {
+        if (!isRunning()) return;
+        logger.info(String.format("Stopping producer to %s %s <message handler ID: %s>", configDestinationType, configDestination.getName(), id));
+        producer.close();
+        producerManager.release(id);
+        isRunning = false;
+    }
 
-	@Override
-	public boolean isRunning() {
-		return isRunning;
-	}
+    @Override
+    public boolean isRunning() {
+        return isRunning;
+    }
 
-	public void setErrorMessageStrategy(ErrorMessageStrategy errorMessageStrategy) {
-		this.errorMessageStrategy = errorMessageStrategy;
-	}
+    private MessagingException handleMessagingException(ErrorChannelSendingCorrelationKey key, String msg, Exception e)
+            throws MessagingException {
+        logger.warn(msg, e);
+        return key.send(msg, e);
+    }
 
-	private MessagingException handleMessagingException(ErrorChannelSendingCorrelationKey key, String msg, Exception e)
-			throws MessagingException {
-		logger.warn(msg, e);
-		return key.send(msg, e);
-	}
+    private static ProducerFlowProperties getProducerFlowProperties(JCSMPSession jcsmpSession) {
+        ProducerFlowProperties producerFlowProperties = new ProducerFlowProperties();
+
+        // SOL-118898:
+        // PUB_ACK_WINDOW_SIZE & ACK_EVENT_MODE aren't automatically used as default values for
+        // ProducerFlowProperties.
+        Integer pubAckWindowSize = (Integer) jcsmpSession.getProperty(JCSMPProperties.PUB_ACK_WINDOW_SIZE);
+        if (pubAckWindowSize != null) {
+            producerFlowProperties.setWindowSize(pubAckWindowSize);
+        }
+        String ackEventMode = (String) jcsmpSession.getProperty(JCSMPProperties.ACK_EVENT_MODE);
+        if (ackEventMode != null) {
+            producerFlowProperties.setAckEventMode(ackEventMode);
+        }
+
+        return producerFlowProperties;
+    }
 }
