@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -40,6 +41,7 @@ import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.RetryListener;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import org.springframework.util.Assert;
 
 public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport implements OrderlyShutdownCapable, Pausable {
@@ -149,7 +151,7 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
 			retryTemplate.registerListener(new SolaceRetryListener(queueName));
 		}
 
-		executorService = Executors.newFixedThreadPool(consumerProperties.getConcurrency());
+		executorService = buildThreadPool(consumerProperties.getConcurrency(), consumerProperties.getBindingName());
 		flowReceivers.stream()
 				.map(this::buildListener)
 				.forEach(listener -> {
@@ -162,7 +164,10 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
 			postStart.accept(queue);
 		}
 	}
-
+	private ExecutorService buildThreadPool(int concurrency, String bindingName) {
+		ThreadFactory threadFactory = new CustomizableThreadFactory("solace-scst-consumer-" + bindingName);
+		return Executors.newFixedThreadPool(concurrency, threadFactory);
+	}
 	@Override
 	protected void doStop() {
 		if (!isRunning()) return;
