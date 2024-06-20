@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.1] - 2024-06-20
+### Changed
+- Fix sending of Direct Messages
+
 ## [4.2.0] - 2024-06-12
 ### Changed
 - By Solace #290 migrate to producer bindings to use JCSMP producer flows

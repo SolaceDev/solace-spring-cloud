@@ -173,8 +173,10 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
         }
 
         try {
-            producerManager.get(id);
-            if (properties.getExtension().isTransacted()) {
+            XMLMessageProducer defaultProducer = producerManager.get(id);
+            if (DestinationType.TOPIC.equals(configDestinationType)) {
+                producer = defaultProducer;
+            } else if (properties.getExtension().isTransacted()) {
                 LOGGER.info("Creating transacted session  <message handler ID: {}>", id);
                 transactedSession = jcsmpSession.createTransactedSession();
                 producer = transactedSession.createProducer(getProducerFlowProperties(jcsmpSession),
@@ -202,7 +204,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 
     private void closeResources() {
         LOGGER.info("Stopping producer to {} {} <message handler ID: {}>", configDestinationType, configDestination.getName(), id);
-        if (producer != null) {
+        if (producer != null && !DestinationType.TOPIC.equals(configDestinationType)) {
             LOGGER.info("Closing producer <message handler ID: {}>", id);
             producer.close();
         }

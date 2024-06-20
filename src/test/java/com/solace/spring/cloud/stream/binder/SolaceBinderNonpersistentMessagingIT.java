@@ -53,7 +53,7 @@ public class SolaceBinderNonpersistentMessagingIT {
 
         String topic = "testSimpleTopicTest/direct/messagingSimpleTopicTest";
         ExtendedProducerProperties<SolaceProducerProperties> producerProperties = context.createProducerProperties(testInfo);
-        producerProperties.getExtension().setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+        producerProperties.getExtension().setDeliveryMode(DeliveryMode.DIRECT);
         Binding<MessageChannel> producerBinding = binder.bindProducer(topic, output, producerProperties);
 
         ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
@@ -91,7 +91,7 @@ public class SolaceBinderNonpersistentMessagingIT {
 
         String topic = "testTopicWithGroupTest/direct/messagingSimpleTopicTest";
         ExtendedProducerProperties<SolaceProducerProperties> producerProperties = context.createProducerProperties(testInfo);
-        producerProperties.getExtension().setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+        producerProperties.getExtension().setDeliveryMode(DeliveryMode.DIRECT);
         Binding<MessageChannel> producerBinding = binder.bindProducer(topic, output, producerProperties);
 
         ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
@@ -145,7 +145,7 @@ public class SolaceBinderNonpersistentMessagingIT {
         context.binderBindUnbindLatency();
         DirectChannel output = context.createBindableChannel("output", new BindingProperties());
         ExtendedProducerProperties<SolaceProducerProperties> producerProperties = context.createProducerProperties(testInfo);
-        producerProperties.getExtension().setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+        producerProperties.getExtension().setDeliveryMode(DeliveryMode.DIRECT);
         Binding<MessageChannel> producerBinding = binder.bindProducer(baseTopic, output, producerProperties);
         context.binderBindUnbindLatency();
 
@@ -203,7 +203,7 @@ public class SolaceBinderNonpersistentMessagingIT {
         context.binderBindUnbindLatency();
         DirectChannel output = context.createBindableChannel("output", new BindingProperties());
         ExtendedProducerProperties<SolaceProducerProperties> producerProperties = context.createProducerProperties(testInfo);
-        producerProperties.getExtension().setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+        producerProperties.getExtension().setDeliveryMode(DeliveryMode.DIRECT);
         Binding<MessageChannel> producerBinding = binder.bindProducer(baseTopic, output, producerProperties);
         context.binderBindUnbindLatency();
 
