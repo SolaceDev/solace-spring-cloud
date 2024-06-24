@@ -2,9 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.2.1] - 2024-06-20
+## [4.2.1] - 2024-06-24
 ### Changed
-- Fix sending of Direct Messages
+- Bump versions to spring boot 3.3.1
+### Fixed
+- Fix a bug when sending Direct Messages
 
 ## [4.2.0] - 2024-06-12
 ### Changed
