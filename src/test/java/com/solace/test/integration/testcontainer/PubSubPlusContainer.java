@@ -1,11 +1,13 @@
 package com.solace.test.integration.testcontainer;
 
+import lombok.Getter;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Arrays;
 
+@Getter
 public class PubSubPlusContainer extends GenericContainer<PubSubPlusContainer> {
 	private String adminUsername;
 	private String adminPassword;
@@ -36,15 +38,7 @@ public class PubSubPlusContainer extends GenericContainer<PubSubPlusContainer> {
 				.waitingFor(Wait.forListeningPort());
 	}
 
-	public String getAdminUsername() {
-		return adminUsername;
-	}
-
-	public String getAdminPassword() {
-		return adminPassword;
-	}
-
-	public String getOrigin(Port port) {
+    public String getOrigin(Port port) {
 		if (port.getProtocol() == null) {
 			throw new IllegalArgumentException(String.format("Getting origin of port %s is not supported", port.name()));
 		}
