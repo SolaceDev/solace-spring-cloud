@@ -12,9 +12,6 @@ import org.apache.commons.logging.LogFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
@@ -34,8 +31,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringJUnitConfig(classes = SolaceJavaAutoConfiguration.class,
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(PubSubPlusExtension.class)
-@Isolated
-@Execution(ExecutionMode.SAME_THREAD)
 public class ErrorQueueRepublishCorrelationKeyIT {
     private Queue errorQueue;
     private XMLMessageProducer producer;
@@ -281,8 +276,10 @@ public class ErrorQueueRepublishCorrelationKeyIT {
             throws JCSMPException {
         if (flowReceiverContainerReference.compareAndSet(null, Mockito.spy(new FlowReceiverContainer(
                 jcsmpSession,
-                queue.getName(),
-                new EndpointProperties())))) {
+                JCSMPFactory.onlyInstance().createQueue(queue.getName()),
+                false,
+                new EndpointProperties(),
+                new ConsumerFlowProperties())))) {
             flowReceiverContainerReference.get().bind();
         }
         return flowReceiverContainerReference.get();

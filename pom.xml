@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.0</version>
+        <version>3.3.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ch.sbb</groupId>
@@ -147,6 +147,12 @@
                 <dependency>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-test</artifactId>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.vaadin.external.google</groupId>
+                            <artifactId>android-json</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>org.springframework.boot</groupId>
@@ -284,8 +290,7 @@
                                     <goal>generate</goal>
                                 </goals>
                                 <configuration>
-                                    <inputSpec>${project.basedir}/src/test/resources/semp/semp-v2-swagger-action.json
-                                    </inputSpec>
+                                    <inputSpec>${project.basedir}/src/test/resources/semp/semp-v2-swagger-action.yaml</inputSpec>
                                     <apiPackage>com.solace.test.integration.semp.v2.action.api</apiPackage>
                                     <modelPackage>com.solace.test.integration.semp.v2.action.model</modelPackage>
                                     <modelNamePrefix>Action</modelNamePrefix>
@@ -314,7 +319,7 @@
                                     <goal>generate</goal>
                                 </goals>
                                 <configuration>
-                                    <inputSpec>${project.basedir}/src/test/resources/semp/semp-v2-swagger-config.json
+                                    <inputSpec>${project.basedir}/src/test/resources/semp/semp-v2-swagger-config.yaml
                                     </inputSpec>
                                     <apiPackage>com.solace.test.integration.semp.v2.config.api</apiPackage>
                                     <modelPackage>com.solace.test.integration.semp.v2.config.model</modelPackage>
@@ -344,7 +349,7 @@
                                     <goal>generate</goal>
                                 </goals>
                                 <configuration>
-                                    <inputSpec>${project.basedir}/src/test/resources/semp/semp-v2-swagger-monitor.json
+                                    <inputSpec>${project.basedir}/src/test/resources/semp/semp-v2-swagger-monitor.yaml
                                     </inputSpec>
                                     <apiPackage>com.solace.test.integration.semp.v2.monitor.api</apiPackage>
                                     <modelPackage>com.solace.test.integration.semp.v2.monitor.model</modelPackage>

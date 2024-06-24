@@ -3,22 +3,21 @@ package com.solace.spring.cloud.stream.binder.inbound.acknowledge;
 import com.solace.spring.cloud.stream.binder.util.ErrorQueueInfrastructure;
 import com.solace.spring.cloud.stream.binder.util.FlowReceiverContainer;
 import com.solace.spring.cloud.stream.binder.util.MessageContainer;
-import java.util.List;
+import com.solacesystems.jcsmp.transaction.TransactedSession;
+import lombok.Setter;
 import org.springframework.integration.acks.AcknowledgmentCallback;
+import java.util.List;
 
 public class JCSMPAcknowledgementCallbackFactory {
 	private final FlowReceiverContainer flowReceiverContainer;
-	private ErrorQueueInfrastructure errorQueueInfrastructure;
+	@Setter
+    private ErrorQueueInfrastructure errorQueueInfrastructure;
 
 	public JCSMPAcknowledgementCallbackFactory(FlowReceiverContainer flowReceiverContainer) {
 		this.flowReceiverContainer = flowReceiverContainer;
 	}
 
-	public void setErrorQueueInfrastructure(ErrorQueueInfrastructure errorQueueInfrastructure) {
-		this.errorQueueInfrastructure = errorQueueInfrastructure;
-	}
-
-	public AcknowledgmentCallback createCallback(MessageContainer messageContainer) {
+    public AcknowledgmentCallback createCallback(MessageContainer messageContainer) {
 		return createJCSMPCallback(messageContainer);
 	}
 
@@ -27,6 +26,10 @@ public class JCSMPAcknowledgementCallbackFactory {
 				.map(this::createJCSMPCallback).toList());
 	}
 
+	public AcknowledgmentCallback createTransactedBatchCallback(List<MessageContainer> messageContainers,
+																TransactedSession transactedSession) {
+		return new TransactedJCSMPAcknowledgementCallback(transactedSession, errorQueueInfrastructure);
+	}
 	private JCSMPAcknowledgementCallback createJCSMPCallback(MessageContainer messageContainer) {
 		return new JCSMPAcknowledgementCallback(messageContainer, flowReceiverContainer,
 				errorQueueInfrastructure);

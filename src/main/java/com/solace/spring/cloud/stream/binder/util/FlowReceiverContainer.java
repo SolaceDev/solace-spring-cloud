@@ -3,24 +3,24 @@ package com.solace.spring.cloud.stream.binder.util;
 import com.solace.spring.cloud.stream.binder.health.handlers.SolaceFlowHealthEventHandler;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.ConsumerFlowProperties;
+import com.solacesystems.jcsmp.Endpoint;
 import com.solacesystems.jcsmp.EndpointProperties;
 import com.solacesystems.jcsmp.FlowEventHandler;
 import com.solacesystems.jcsmp.FlowReceiver;
 import com.solacesystems.jcsmp.JCSMPException;
-import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.XMLMessage.Outcome;
+import com.solacesystems.jcsmp.transaction.TransactedSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.lang.Nullable;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * <p>A {@link FlowReceiver} wrapper object which allows for flow rebinds.</p>
@@ -30,24 +30,32 @@ import org.springframework.lang.Nullable;
 public class FlowReceiverContainer {
 	private final UUID id = UUID.randomUUID();
 	private final JCSMPSession session;
-	private final String queueName;
+	private final Endpoint endpoint;
+	private final boolean transacted;
 	private final EndpointProperties endpointProperties;
+	private final ConsumerFlowProperties consumerFlowProperties;
 	private final AtomicReference<FlowReceiverReference> flowReceiverAtomicReference = new AtomicReference<>();
 	private final AtomicBoolean isPaused = new AtomicBoolean(false);
 
 	//Lock to serialize operations like - bind, unbind, pause, resume
-	private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+	private final ReentrantLock writeLock = new ReentrantLock();
 
-	private static final Log logger = LogFactory.getLog(FlowReceiverContainer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(FlowReceiverContainer.class);
 	private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
 	private FlowEventHandler eventHandler;
 
 	public FlowReceiverContainer(JCSMPSession session,
-								 String queueName,
-								 EndpointProperties endpointProperties) {
+								 Endpoint endpoint,
+								 boolean transacted,
+								 EndpointProperties endpointProperties,
+								 ConsumerFlowProperties consumerFlowProperties) {
 		this.session = session;
-		this.queueName = queueName;
+		this.endpoint = endpoint;
+		this.transacted = transacted;
 		this.endpointProperties = endpointProperties;
+		this.consumerFlowProperties = consumerFlowProperties
+				.setEndpoint(endpoint)
+				.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_CLIENT);
 		this.eventHandler = new SolaceFlowEventHandler(xmlMessageMapper, id.toString());
 	}
 
@@ -61,31 +69,40 @@ public class FlowReceiverContainer {
 		// Ideally would just use flowReceiverReference.compareAndSet(null, newFlowReceiver),
 		// but we can't initialize a FlowReceiver object without actually provisioning it.
 		// Explicitly using a lock here is our only option.
-		Lock writeLock = readWriteLock.writeLock();
 		writeLock.lock();
 		try {
-			logger.info(String.format("Binding flow receiver container %s", id));
+			LOGGER.info("Binding flow receiver container {}", id);
 			FlowReceiverReference existingFlowReceiverReference = flowReceiverAtomicReference.get();
 			if (existingFlowReceiverReference != null) {
 				UUID existingFlowRefId = existingFlowReceiverReference.getId();
-				logger.info(String.format("Flow receiver container %s is already bound to %s", id, existingFlowRefId));
+				LOGGER.info("Flow receiver container {} is already bound to {}", id, existingFlowRefId);
 				return existingFlowRefId;
 			} else {
-				logger.info(String.format("Flow receiver container %s started in state '%s'", id, isPaused.get() ? "Paused" : "Running"));
-				final ConsumerFlowProperties flowProperties = new ConsumerFlowProperties()
-						.setEndpoint(JCSMPFactory.onlyInstance().createQueue(queueName))
-						.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_CLIENT)
-						.setStartState(!isPaused.get());
-				flowProperties.addRequiredSettlementOutcomes(Outcome.ACCEPTED, Outcome.FAILED, Outcome.REJECTED);
+				LOGGER.info("Flow receiver container {} started in state '{}'", id, isPaused.get() ? "Paused" : "Running");
+				consumerFlowProperties.setStartState(!isPaused.get());
+				if (!transacted) {
+				consumerFlowProperties.addRequiredSettlementOutcomes(Outcome.ACCEPTED, Outcome.FAILED, Outcome.REJECTED);
+				}
 
-				FlowReceiver flowReceiver = session.createFlow(null, flowProperties, endpointProperties, eventHandler);
+				TransactedSession transactedSession = transacted ? session.createTransactedSession() : null;
+				try {
+					FlowReceiver flowReceiver = transactedSession != null ?
+							transactedSession.createFlow(null, consumerFlowProperties, endpointProperties, eventHandler) :
+							session.createFlow(null, consumerFlowProperties, endpointProperties, eventHandler);
 				if (eventHandler != null && eventHandler instanceof SolaceFlowHealthEventHandler) {
 					((SolaceFlowHealthEventHandler) eventHandler).setHealthStatusUp();
 				}
-				FlowReceiverReference newFlowReceiverReference = new FlowReceiverReference(flowReceiver);
+					FlowReceiverReference newFlowReceiverReference = new FlowReceiverReference(flowReceiver, transactedSession);
 				flowReceiverAtomicReference.set(newFlowReceiverReference);
 				xmlMessageMapper.resetIgnoredProperties(id.toString());
 				return newFlowReceiverReference.getId();
+				} catch (Throwable t) {
+					if (transactedSession != null) {
+						LOGGER.debug("Closing transacted session for flow receiver container {} due to bind error", id);
+						transactedSession.close();
+					}
+					throw t;
+				}
 			}
 		} finally {
 			writeLock.unlock();
@@ -96,14 +113,17 @@ public class FlowReceiverContainer {
 	 * Closes the bound {@link FlowReceiver}.
 	 */
 	public void unbind() {
-		Lock writeLock = readWriteLock.writeLock();
 		writeLock.lock();
 		try {
 			FlowReceiverReference flowReceiverReference = flowReceiverAtomicReference.getAndSet(null);
 			if (flowReceiverReference != null) {
-				logger.info(String.format("Unbinding flow receiver container %s", id));
+				LOGGER.info("Unbinding flow receiver container {}", id);
 				flowReceiverReference.getStaleMessagesFlag().set(true);
 				flowReceiverReference.get().close();
+				TransactedSession transactedSession = flowReceiverReference.getTransactedSession();
+				if (transactedSession != null) {
+					transactedSession.close();
+				}
 			}
 		} finally {
 			writeLock.unlock();
@@ -134,42 +154,27 @@ public class FlowReceiverContainer {
 	 * @see FlowReceiver#receive(int)
 	 */
 	public MessageContainer receive(Integer timeoutInMillis) throws JCSMPException, UnboundFlowReceiverContainerException {
-		final Long expiry = timeoutInMillis != null ? timeoutInMillis + System.currentTimeMillis() : null;
 
-		Integer realTimeout;
 		FlowReceiverReference flowReceiverReference = flowReceiverAtomicReference.get();
 		if (flowReceiverReference == null) {
 			throw new UnboundFlowReceiverContainerException(
 					String.format("Flow receiver container %s is not bound", id));
 		}
 
-		if (expiry != null) {
-			try {
-				realTimeout = Math.toIntExact(expiry - System.currentTimeMillis());
-				if (realTimeout < 0) {
-					realTimeout = 0;
-				}
-			} catch (ArithmeticException e) {
-				logger.debug("Failed to compute real timeout", e);
 				// Always true: expiry - System.currentTimeMillis() < timeoutInMillis
 				// So just set it to 0 (no-wait) if we underflow
-				realTimeout = 0;
-			}
-		} else {
-			realTimeout = null;
-		}
 
 		// The flow's receive shouldn't be locked behind the read lock.
 		// This lets it be interrupt-able if the flow were to be shutdown mid-receive.
 		BytesXMLMessage xmlMessage;
-		if (realTimeout == null) {
+		if (timeoutInMillis == null) {
 			xmlMessage = flowReceiverReference.get().receive();
-		} else if (realTimeout == 0) {
+		} else if (timeoutInMillis == 0) {
 			xmlMessage = flowReceiverReference.get().receiveNoWait();
 		} else {
 			// realTimeout > 0: Wait until timeout
 			// realTimeout < 0: Equivalent to receiveNoWait()
-			xmlMessage = flowReceiverReference.get().receive(realTimeout);
+			xmlMessage = flowReceiverReference.get().receive(timeoutInMillis);
 		}
 
 		if (xmlMessage == null) {
@@ -187,6 +192,9 @@ public class FlowReceiverContainer {
 	 * @param messageContainer The message
 	 */
 	public void acknowledge(MessageContainer messageContainer) {
+		if (transacted) {
+			throw new UnsupportedOperationException("Transactions do not support message settlements");
+		}
 		if (messageContainer == null || messageContainer.isAcknowledged()) {
 			return;
 		}
@@ -211,6 +219,9 @@ public class FlowReceiverContainer {
 	 * @param messageContainer The message
 	 */
 	public void requeue(MessageContainer messageContainer) {
+		if (transacted) {
+			throw new UnsupportedOperationException("Transactions do not support message settlements");
+		}
 		if (messageContainer == null || messageContainer.isAcknowledged()) {
 			return;
 		}
@@ -235,6 +246,9 @@ public class FlowReceiverContainer {
 	 * @param messageContainer The message
 	 */
 	public void reject(MessageContainer messageContainer) {
+		if (transacted) {
+			throw new UnsupportedOperationException("Transactions do not support message settlements");
+		}
 		if (messageContainer == null || messageContainer.isAcknowledged()) {
 			return;
 		}
@@ -249,10 +263,9 @@ public class FlowReceiverContainer {
 	}
 
 	public void pause() {
-		Lock writeLock = readWriteLock.writeLock();
 		writeLock.lock();
 		try {
-			logger.info(String.format("Pausing flow receiver container %s", id));
+			LOGGER.info("Pausing flow receiver container {}", id);
 			doFlowReceiverReferencePause();
 			isPaused.set(true);
 		} finally {
@@ -266,7 +279,6 @@ public class FlowReceiverContainer {
 	 * @see #pause()
 	 */
 	void doFlowReceiverReferencePause() {
-		Lock writeLock = readWriteLock.writeLock();
 		writeLock.lock();
 		try {
 			FlowReceiverReference flowReceiverReference = flowReceiverAtomicReference.get();
@@ -279,10 +291,9 @@ public class FlowReceiverContainer {
 	}
 
 	public void resume() throws JCSMPException {
-		Lock writeLock = readWriteLock.writeLock();
 		writeLock.lock();
 		try {
-			logger.info(String.format("Resuming flow receiver container %s", id));
+			LOGGER.info("Resuming flow receiver container {}", id);
 			doFlowReceiverReferenceResume();
 			isPaused.set(false);
 		} finally {
@@ -296,7 +307,6 @@ public class FlowReceiverContainer {
 	 * @see #resume()
 	 */
 	void doFlowReceiverReferenceResume() throws JCSMPException {
-		Lock writeLock = readWriteLock.writeLock();
 		writeLock.lock();
 		try {
 			FlowReceiverReference flowReceiverReference = flowReceiverAtomicReference.get();
@@ -327,8 +337,8 @@ public class FlowReceiverContainer {
 		return id;
 	}
 
-	public String getQueueName() {
-		return queueName;
+	public String getEndpointName() {
+		return endpoint.getName();
 	}
 
 	public XMLMessageMapper getXMLMessageMapper() {
@@ -339,13 +349,24 @@ public class FlowReceiverContainer {
 		this.eventHandler = eventHandler;
 	}
 
+	@Nullable
+	public TransactedSession getTransactedSession() {
+		if (!transacted) { // short-circuit
+			return null;
+		}
+		return Optional.ofNullable(flowReceiverAtomicReference.get())
+				.map(FlowReceiverReference::getTransactedSession)
+				.orElse(null);
+	}
 	static class FlowReceiverReference {
 		private final UUID id = UUID.randomUUID();
 		private final FlowReceiver flowReceiver;
+		@Nullable private final TransactedSession transactedSession;
 		private final AtomicBoolean staleMessagesFlag = new AtomicBoolean(false);
 
-		public FlowReceiverReference(FlowReceiver flowReceiver) {
+		public FlowReceiverReference(FlowReceiver flowReceiver, @Nullable TransactedSession transactedSession) {
 			this.flowReceiver = flowReceiver;
+			this.transactedSession = transactedSession;
 		}
 
 		/**
@@ -362,6 +383,10 @@ public class FlowReceiverContainer {
 
 		public FlowReceiver get() {
 			return flowReceiver;
+		}
+		@Nullable
+		public TransactedSession getTransactedSession() {
+			return transactedSession;
 		}
 
 		public AtomicBoolean getStaleMessagesFlag() {
@@ -381,12 +406,12 @@ public class FlowReceiverContainer {
 			if (this == o) return true;
 			if (o == null || getClass() != o.getClass()) return false;
 			FlowReceiverReference that = (FlowReceiverReference) o;
-			return id.equals(that.id) && flowReceiver.equals(that.flowReceiver);
+			return Objects.equals(id, that.id);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(id, flowReceiver);
+			return Objects.hash(id);
 		}
 	}
 }

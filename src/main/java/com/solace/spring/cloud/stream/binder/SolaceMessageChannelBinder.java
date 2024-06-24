@@ -8,8 +8,8 @@ import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceConsumerDestination;
+import com.solace.spring.cloud.stream.binder.provisioning.SolaceEndpointProvisioner;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceProvisioningUtil;
-import com.solace.spring.cloud.stream.binder.provisioning.SolaceQueueProvisioner;
 import com.solace.spring.cloud.stream.binder.util.*;
 import com.solacesystems.jcsmp.*;
 import lombok.Setter;
@@ -29,7 +29,12 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<ExtendedConsumerProperties<SolaceConsumerProperties>, ExtendedProducerProperties<SolaceProducerProperties>, SolaceQueueProvisioner> implements ExtendedPropertiesBinder<MessageChannel, SolaceConsumerProperties, SolaceProducerProperties>, DisposableBean {
+public class SolaceMessageChannelBinder
+        extends AbstractMessageChannelBinder<ExtendedConsumerProperties<SolaceConsumerProperties>,
+        ExtendedProducerProperties<SolaceProducerProperties>,
+        SolaceEndpointProvisioner>
+        implements ExtendedPropertiesBinder<MessageChannel,
+        SolaceConsumerProperties, SolaceProducerProperties>, DisposableBean {
 
     private final JCSMPSession jcsmpSession;
     private final JCSMPInboundTopicMessageMultiplexer jcsmpInboundTopicMessageMultiplexer;
@@ -45,12 +50,12 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
     @Nullable
     private SolaceBinderHealthAccessor solaceBinderHealthAccessor;
 
-    public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, SolaceQueueProvisioner solaceQueueProvisioner) {
-        this(jcsmpSession, null, solaceQueueProvisioner);
+    public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, SolaceEndpointProvisioner solaceEndpointProvisioner) {
+        this(jcsmpSession, null, solaceEndpointProvisioner);
     }
 
-    public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, Context jcsmpContext, SolaceQueueProvisioner solaceQueueProvisioner) {
-        super(new String[0], solaceQueueProvisioner);
+    public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, Context jcsmpContext, SolaceEndpointProvisioner solaceEndpointProvisioner) {
+        super(new String[0], solaceEndpointProvisioner);
         this.jcsmpSession = jcsmpSession;
         this.jcsmpContext = jcsmpContext;
         this.sessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
@@ -74,8 +79,16 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
     }
 
     @Override
-    protected MessageHandler createProducerMessageHandler(ProducerDestination destination, ExtendedProducerProperties<SolaceProducerProperties> producerProperties, MessageChannel errorChannel) {
-        JCSMPOutboundMessageHandler handler = new JCSMPOutboundMessageHandler(destination, jcsmpSession, errorChannel, sessionProducerManager, producerProperties, solaceMeterAccessor);
+    protected MessageHandler createProducerMessageHandler(ProducerDestination destination,
+                                                          ExtendedProducerProperties<SolaceProducerProperties> producerProperties,
+                                                          MessageChannel errorChannel) {
+        JCSMPOutboundMessageHandler handler = new JCSMPOutboundMessageHandler(
+                destination,
+                jcsmpSession,
+                errorChannel,
+                sessionProducerManager,
+                producerProperties,
+                solaceMeterAccessor);
 
         if (errorChannel != null) {
             handler.setErrorMessageStrategy(errorMessageStrategy);
@@ -89,13 +102,25 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
         if (properties.getExtension() != null && properties.getExtension().getQualityOfService() == QualityOfService.AT_MOST_ONCE) {
             return createTopicMessageProducer(destination, group, properties);
         }
+		if (!properties.isBatchMode() && properties.getExtension().isTransacted()) {
+			throw new IllegalArgumentException("Non-batched, transacted consumers are not supported");
+		}
+
+		if (properties.getExtension().isTransacted() && properties.getExtension().isAutoBindErrorQueue()) {
+			throw new IllegalArgumentException("transacted consumers do not support error queues");
+		}
         return createQueueMessageProducer(destination, group, properties);
     }
 
     protected MessageProducer createQueueMessageProducer(ConsumerDestination destination, String group, ExtendedConsumerProperties<SolaceConsumerProperties> properties) {
         SolaceConsumerDestination solaceDestination = (SolaceConsumerDestination) destination;
 
-        JCSMPInboundQueueMessageProducer adapter = new JCSMPInboundQueueMessageProducer(solaceDestination, jcsmpSession, properties, getConsumerEndpointProperties(properties), solaceMeterAccessor);
+        JCSMPInboundQueueMessageProducer adapter = new JCSMPInboundQueueMessageProducer(
+                solaceDestination,
+                jcsmpSession,
+                properties,
+                getConsumerEndpointProperties(properties),
+                solaceMeterAccessor);
 
         if (solaceBinderHealthAccessor != null) {
             adapter.setSolaceBinderHealthAccessor(solaceBinderHealthAccessor);
@@ -105,7 +130,11 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
         adapter.setPostStart(getConsumerPostStart(solaceDestination, properties));
 
         if (properties.getExtension().isAutoBindErrorQueue()) {
-            adapter.setErrorQueueInfrastructure(new ErrorQueueInfrastructure(sessionProducerManager, errorHandlerProducerKey, solaceDestination.getErrorQueueName(), properties.getExtension()));
+            adapter.setErrorQueueInfrastructure(new ErrorQueueInfrastructure(
+                    sessionProducerManager,
+                    errorHandlerProducerKey,
+                    solaceDestination.getErrorQueueName(),
+                    properties.getExtension()));
         }
 
         ErrorInfrastructure errorInfra = registerErrorInfrastructure(destination, group, properties);
@@ -118,10 +147,11 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
 
         adapter.setErrorMessageStrategy(errorMessageStrategy);
         return adapter;
+
     }
 
     protected MessageProducer createTopicMessageProducer(ConsumerDestination destination, String group, ExtendedConsumerProperties<SolaceConsumerProperties> properties) {
-        JCSMPInboundTopicMessageProducer topicMessageProducer = this.jcsmpInboundTopicMessageMultiplexer.createTopicMessageProducer(destination,group, properties);
+        JCSMPInboundTopicMessageProducer topicMessageProducer = this.jcsmpInboundTopicMessageMultiplexer.createTopicMessageProducer(destination, group, properties);
         AbstractMessageChannelBinder.ErrorInfrastructure errorInfra = registerErrorInfrastructure(destination, null, properties);
 
         topicMessageProducer.setErrorChannel(errorInfra.getErrorChannel());
@@ -131,7 +161,15 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
 
 
     @Override
-    protected PolledConsumerResources createPolledConsumerResources(String name, String group, ConsumerDestination destination, ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties) {
+    protected PolledConsumerResources createPolledConsumerResources(String name, String group,
+                                                                    ConsumerDestination destination,
+                                                                    ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties) {
+		if (!consumerProperties.isBatchMode() && consumerProperties.getExtension().isTransacted()) {
+			throw new IllegalArgumentException("Non-batched, transacted consumers are not supported");
+		}
+		if (consumerProperties.getExtension().isTransacted() && consumerProperties.getExtension().isAutoBindErrorQueue()) {
+			throw new IllegalArgumentException("transacted consumers do not support error queues");
+		}
         if (consumerProperties.getConcurrency() > 1) {
             logger.warn("Polled consumers do not support concurrency > 1, it will be ignored...");
         }
@@ -142,7 +180,12 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
         SolaceConsumerDestination solaceDestination = (SolaceConsumerDestination) destination;
 
         EndpointProperties endpointProperties = getConsumerEndpointProperties(consumerProperties);
-        JCSMPMessageSource messageSource = new JCSMPMessageSource(solaceDestination, jcsmpSession, consumerProperties.isBatchMode() ? new BatchCollector(consumerProperties.getExtension()) : null, consumerProperties, endpointProperties, solaceMeterAccessor);
+        JCSMPMessageSource messageSource = new JCSMPMessageSource(solaceDestination,
+                jcsmpSession,
+                consumerProperties.isBatchMode() ? new BatchCollector(consumerProperties.getExtension()) : null,
+                consumerProperties,
+                endpointProperties,
+                solaceMeterAccessor);
 
         if (solaceBinderHealthAccessor != null) {
             messageSource.setSolaceBinderHealthAccessor(solaceBinderHealthAccessor);
@@ -152,7 +195,10 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
         messageSource.setPostStart(getConsumerPostStart(solaceDestination, consumerProperties));
 
         if (consumerProperties.getExtension().isAutoBindErrorQueue()) {
-            messageSource.setErrorQueueInfrastructure(new ErrorQueueInfrastructure(sessionProducerManager, errorHandlerProducerKey, solaceDestination.getErrorQueueName(), consumerProperties.getExtension()));
+            messageSource.setErrorQueueInfrastructure(new ErrorQueueInfrastructure(sessionProducerManager,
+                    errorHandlerProducerKey,
+                    solaceDestination.getErrorQueueName(),
+                    consumerProperties.getExtension()));
         }
 
         ErrorInfrastructure errorInfra = registerErrorInfrastructure(destination, group, consumerProperties, true);
@@ -170,12 +216,14 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
     }
 
     @Override
-    protected MessageHandler getErrorMessageHandler(ConsumerDestination destination, String group, ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties) {
+    protected MessageHandler getErrorMessageHandler(ConsumerDestination destination, String group,
+                                                    ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties) {
         return new SolaceErrorMessageHandler();
     }
 
     @Override
-    protected MessageHandler getPolledConsumerErrorMessageHandler(ConsumerDestination destination, String group, ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties) {
+    protected MessageHandler getPolledConsumerErrorMessageHandler(ConsumerDestination destination, String group,
+                                                                  ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties) {
         final MessageHandler handler = getErrorMessageHandler(destination, group, consumerProperties);
         if (handler != null) {
             return handler;
@@ -227,13 +275,16 @@ public class SolaceMessageChannelBinder extends AbstractMessageChannelBinder<Ext
      * Temporary endpoints are only provisioned when the consumer is created.
      * Ideally, these should be done within the provisioningProvider itself.
      */
-    private Consumer<Queue> getConsumerPostStart(SolaceConsumerDestination destination, ExtendedConsumerProperties<SolaceConsumerProperties> properties) {
-        return (queue) -> {
-            provisioningProvider.addSubscriptionToQueue(queue, destination.getBindingDestinationName(), properties.getExtension(), true);
+    private Consumer<Endpoint> getConsumerPostStart(SolaceConsumerDestination destination,
+                                                    ExtendedConsumerProperties<SolaceConsumerProperties> properties) {
+        return (endpoint) -> {
+            if (endpoint instanceof Queue queue) {
+                provisioningProvider.addSubscriptionToQueue(queue, destination.getBindingDestinationName(), properties.getExtension(), true);
 
-            //Process additional subscriptions
-            for (String subscription : destination.getAdditionalSubscriptions()) {
-                provisioningProvider.addSubscriptionToQueue(queue, subscription, properties.getExtension(), false);
+                //Process additional subscriptions
+                for (String subscription : destination.getAdditionalSubscriptions()) {
+                    provisioningProvider.addSubscriptionToQueue(queue, subscription, properties.getExtension(), false);
+                }
             }
         };
     }

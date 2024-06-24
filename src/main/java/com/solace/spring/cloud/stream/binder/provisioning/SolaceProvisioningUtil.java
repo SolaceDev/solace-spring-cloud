@@ -3,8 +3,9 @@ package com.solace.spring.cloud.stream.binder.provisioning;
 import com.solace.spring.cloud.stream.binder.properties.SolaceCommonProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
+import com.solace.spring.cloud.stream.binder.util.EndpointType;
 import com.solace.spring.cloud.stream.binder.util.QualityOfService;
-import com.solacesystems.jcsmp.EndpointProperties;
+import com.solacesystems.jcsmp.*;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.provisioning.ProvisioningException;
@@ -47,16 +48,51 @@ public class SolaceProvisioningUtil {
         return endpointProperties;
     }
 
-    public static boolean isTopicSubscription(QualityOfService qualityOfService) {
-        return qualityOfService == QualityOfService.AT_MOST_ONCE;
+    public static ProducerFlowProperties getProducerFlowProperties(JCSMPSession jcsmpSession) {
+        ProducerFlowProperties producerFlowProperties = new ProducerFlowProperties();
+        Integer pubAckWindowSize = (Integer) jcsmpSession.getProperty(JCSMPProperties.PUB_ACK_WINDOW_SIZE);
+        if (pubAckWindowSize != null) {
+            producerFlowProperties.setWindowSize(pubAckWindowSize);
+        }
+        String ackEventMode = (String) jcsmpSession.getProperty(JCSMPProperties.ACK_EVENT_MODE);
+        if (ackEventMode != null) {
+            producerFlowProperties.setAckEventMode(ackEventMode);
+        }
+        return producerFlowProperties;
     }
 
-    public static boolean isAnonQueue(String groupName, QualityOfService qualityOfService) {
+    public static ConsumerFlowProperties getConsumerFlowProperties(String destinationName, ExtendedConsumerProperties<SolaceConsumerProperties> properties) {
+        ConsumerFlowProperties consumerFlowProperties = new ConsumerFlowProperties();
+        final String selector = properties.getExtension().getSelector();
+        consumerFlowProperties.setSelector((selector == null || selector.isBlank()) ? null : selector);
+        if (EndpointType.TOPIC_ENDPOINT.equals(properties.getExtension().getEndpointType())) {
+            String subscription;
+            if (properties.getExtension().isAddDestinationAsSubscriptionToQueue()) {
+                subscription = destinationName;
+                if (properties.getExtension().getQueueAdditionalSubscriptions().length > 0) {
+                    throw new IllegalArgumentException("No additional queue subscriptions permitted for topic endpoints");
+                }
+            } else {
+                if (properties.getExtension().getQueueAdditionalSubscriptions().length != 1)
+                    throw new IllegalArgumentException("Exactly one subscription must be provided for topic endpoints");
+                subscription = properties.getExtension().getQueueAdditionalSubscriptions()[0];
+            }
+            consumerFlowProperties.setNewSubscription(JCSMPFactory.onlyInstance().createTopic(subscription));
+        }
+
+        return consumerFlowProperties;
+    }
+
+    public static boolean isAnonEndpoint(String groupName, QualityOfService qualityOfService) {
         return !StringUtils.hasText(groupName) || isTopicSubscription(qualityOfService);
     }
 
-    public static boolean isDurableQueue(String groupName, QualityOfService qualityOfService) {
-        return !isAnonQueue(groupName, qualityOfService);
+    public static boolean isDurableEndpoint(String groupName, QualityOfService qualityOfService) {
+        return !isAnonEndpoint(groupName, qualityOfService);
+    }
+
+    public static boolean isTopicSubscription(QualityOfService qualityOfService) {
+        return qualityOfService == QualityOfService.AT_MOST_ONCE;
     }
 
     public static String getTopicName(String baseTopicName, SolaceCommonProperties properties) {

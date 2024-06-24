@@ -26,8 +26,11 @@ public class ErrorQueueRepublishCorrelationKey {
 	public void handleError() {
 		while (true) {
 			if (messageContainer.isStale()) {
-				throw new IllegalStateException(String.format("Message container %s (XMLMessage %s) is stale",
-						messageContainer.getId(), messageContainer.getMessage().getMessageId()), null);
+				throw new IllegalStateException(String.format(
+						"Cannot republish failed message container %s (XMLMessage %s) to error queue %s. Message is stale",
+						messageContainer.getId(),
+						messageContainer.getMessage().getMessageId(),
+						errorQueueInfrastructure.getErrorQueueName()), null);
 			} else if (errorQueueDeliveryAttempt >= errorQueueInfrastructure.getMaxDeliveryAttempts()) {
 				fallback();
 				break;
@@ -51,7 +54,7 @@ public class ErrorQueueRepublishCorrelationKey {
 	private void fallback() {
 		logger.info(String.format(
 				"Exceeded max error queue delivery attempts. XMLMessage %s will be re-queued onto queue %s",
-				messageContainer.getMessage().getMessageId(), flowReceiverContainer.getQueueName()));
+					messageContainer.getMessage().getMessageId(), flowReceiverContainer.getEndpointName()));
 		flowReceiverContainer.requeue(messageContainer);
 	}
 

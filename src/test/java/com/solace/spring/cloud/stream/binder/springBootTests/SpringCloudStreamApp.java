@@ -1,6 +1,5 @@
 package com.solace.spring.cloud.stream.binder.springBootTests;
 
-import com.solace.spring.cloud.stream.binder.util.JCSMPSessionEventHandler;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;

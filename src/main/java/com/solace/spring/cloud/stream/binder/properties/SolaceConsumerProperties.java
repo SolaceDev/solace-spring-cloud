@@ -2,6 +2,7 @@ package com.solace.spring.cloud.stream.binder.properties;
 
 import static com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties.DEFAULTS_PREFIX;
 
+import com.solace.spring.cloud.stream.binder.util.EndpointType;
 import com.solace.spring.cloud.stream.binder.util.QualityOfService;
 import com.solacesystems.jcsmp.EndpointProperties;
 import jakarta.validation.constraints.Min;
@@ -18,6 +19,11 @@ import org.springframework.util.Assert;
 @SuppressWarnings("ConfigurationProperties")
 @ConfigurationProperties(DEFAULTS_PREFIX + ".consumer")
 public class SolaceConsumerProperties extends SolaceCommonProperties {
+	/**
+	 * The type of endpoint messages are consumed from.
+	 */
+	private EndpointType endpointType = EndpointType.QUEUE;
+
 	/**
 	 * <p>The maximum number of messages per batch.</p>
 	 * <p>Only applicable when {@code batchMode} is {@code true}.</p>
@@ -53,6 +59,11 @@ public class SolaceConsumerProperties extends SolaceCommonProperties {
 	 * directly using the SpEL expression string is not supported. The default value for this config option is subject to change without notice.
 	 */
 	private String queueNameExpression = "'scst/' + (isAnonymous ? 'an/' : 'wk/') + (group?.trim() + '/') + 'plain/' + destination.trim().replaceAll('[*>]', '_')";
+
+	/**
+	 * A SQL-92 selector expression to use for selection of messages for consumption. Max of 2000 characters.
+	 */
+	private String selector = null;
 
 	// Error Queue Properties ---------
 	/**

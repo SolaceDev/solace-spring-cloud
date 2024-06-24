@@ -7,7 +7,7 @@ import com.solace.spring.cloud.stream.binder.health.handlers.SolaceSessionEventH
 import com.solace.spring.cloud.stream.binder.health.indicators.SessionHealthIndicator;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
-import com.solace.spring.cloud.stream.binder.provisioning.SolaceQueueProvisioner;
+import com.solace.spring.cloud.stream.binder.provisioning.SolaceEndpointProvisioner;
 import com.solace.spring.cloud.stream.binder.util.JCSMPSessionEventHandler;
 import com.solacesystems.jcsmp.*;
 import com.solacesystems.jcsmp.impl.JCSMPBasicSession;
@@ -75,8 +75,8 @@ public class SolaceMessageChannelBinderConfiguration {
     }
 
     @Bean
-    SolaceMessageChannelBinder solaceMessageChannelBinder(SolaceQueueProvisioner solaceQueueProvisioner, @Nullable SolaceBinderHealthAccessor solaceBinderHealthAccessor, @Nullable SolaceMeterAccessor solaceMeterAccessor) {
-        SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession, context, solaceQueueProvisioner);
+    SolaceMessageChannelBinder solaceMessageChannelBinder(SolaceEndpointProvisioner solaceEndpointProvisioner, @Nullable SolaceBinderHealthAccessor solaceBinderHealthAccessor, @Nullable SolaceMeterAccessor solaceMeterAccessor) {
+        SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession, context, solaceEndpointProvisioner);
         binder.setExtendedBindingProperties(solaceExtendedBindingProperties);
         binder.setSolaceMeterAccessor(solaceMeterAccessor);
         if (solaceBinderHealthAccessor != null) {
@@ -86,8 +86,8 @@ public class SolaceMessageChannelBinderConfiguration {
     }
 
     @Bean
-    SolaceQueueProvisioner provisioningProvider() {
-        return new SolaceQueueProvisioner(jcsmpSession, jcsmpSessionEventHandler);
+    SolaceEndpointProvisioner provisioningProvider() {
+        return new SolaceEndpointProvisioner(jcsmpSession, jcsmpSessionEventHandler);
     }
 
 }
