@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.2] - 2024-07-04
+### Changed
+- Bump versions of solace jcsmp to 10.24.0
+- 
 ## [4.2.1] - 2024-06-24
 ### Changed
 - Bump versions to spring boot 3.3.1
