@@ -25,6 +25,7 @@ import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueTxFlo
 import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.*;
 import com.solacesystems.jcsmp.transaction.RollbackException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -35,8 +36,6 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.junitpioneer.jupiter.cartesian.CartesianTest.Values;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.cloud.stream.binder.*;
 import org.springframework.cloud.stream.config.BindingProperties;
@@ -72,13 +71,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * inherited by {@link PartitionCapableBinderTests PartitionCapableBinderTests}
  * along with basic tests specific to the Solace Spring Cloud Stream Binder.
  */
+@Slf4j
 @SpringJUnitConfig(classes = SolaceJavaAutoConfiguration.class,
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(ExecutorServiceExtension.class)
 @ExtendWith(PubSubPlusExtension.class)
 @Execution(ExecutionMode.SAME_THREAD) // parent tests define static destinations
 public class SolaceBinderBasicIT extends SpringCloudStreamContext {
-    private static final Logger logger = LoggerFactory.getLogger(SolaceBinderBasicIT.class);
 
     @BeforeEach
     void setUp(JCSMPSession jcsmpSession, SempV2Api sempV2Api) {
@@ -119,7 +118,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             SoftAssertions softly,
             TestInfo testInfo) throws Exception {
         if (!batchMode && transacted) {
-            logger.info("non-batched, transacted consumers not yet supported");
+            log.info("non-batched, transacted consumers not yet supported");
             return;
         }
         SolaceTestBinder binder = getBinder();
@@ -194,7 +193,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             SoftAssertions softly,
             TestInfo testInfo) throws Exception {
         if (!batchMode && transacted) {
-            logger.info("non-batched, transacted consumers not yet supported");
+            log.info("non-batched, transacted consumers not yet supported");
             return;
         }
         SolaceTestBinder binder = getBinder();
@@ -398,13 +397,13 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                 .build();
 
         final CompletableFuture<Message<?>> bindingSpecificErrorMessage = new CompletableFuture<>();
-        logger.info("Subscribing to binding-specific error channel");
+        log.info("Subscribing to binding-specific error channel");
         binder.getApplicationContext()
                 .getBean(destination0EC, SubscribableChannel.class)
                 .subscribe(bindingSpecificErrorMessage::complete);
 
         final CompletableFuture<Message<?>> globalErrorMessage = new CompletableFuture<>();
-        logger.info("Subscribing to global error channel");
+        log.info("Subscribing to global error channel");
         binder.getApplicationContext()
                 .getBean(IntegrationContextUtils.ERROR_CHANNEL_BEAN_NAME, SubscribableChannel.class)
                 .subscribe(globalErrorMessage::complete);
@@ -481,7 +480,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                 .build();
 
         final CompletableFuture<Message<?>> bindingSpecificErrorMessage = new CompletableFuture<>();
-        logger.info("Subscribing to binding-specific error channel");
+        log.info("Subscribing to binding-specific error channel");
         binder.getApplicationContext()
                 .getBean(destination0EC, SubscribableChannel.class)
                 .subscribe(bindingSpecificErrorMessage::complete);
@@ -530,7 +529,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             SoftAssertions softly,
             TestInfo testInfo) throws Exception {
         if (!batchMode && transacted) {
-            logger.info("non-batched, transacted consumers not yet supported");
+            log.info("non-batched, transacted consumers not yet supported");
             return;
         }
         SolaceTestBinder binder = getBinder();
@@ -569,7 +568,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                         callback.run();
                         throw new RuntimeException("Throwing expected exception!");
                     } else {
-                        logger.info("Received message");
+                        log.info("Received message");
                         softly.assertThat(msg).satisfies(hasNestedHeader(SolaceHeaders.REDELIVERED, Boolean.class,
                                 consumerProperties.isBatchMode(), v -> assertThat(v).isTrue()));
                         callback.run();
@@ -667,7 +666,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         Queue queue = JCSMPFactory.onlyInstance().createQueue(SolaceProvisioningUtil
                 .getQueueName(destination0, group0, createProducerProperties(testInfo)));
 
-        logger.info(String.format("Pre-provisioning queue %s with AccessType %s to conflict with defaultAccessType %s",
+        log.info(String.format("Pre-provisioning queue %s with AccessType %s to conflict with defaultAccessType %s",
                 queue.getName(), endpointProperties.getAccessType(), defaultAccessType));
         jcsmpSession.provision(queue, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
 
@@ -682,7 +681,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             fail("Expected producer provisioning to fail due to queue property change");
         } catch (ProvisioningException e) {
             assertThat(e).hasCauseInstanceOf(PropertyMismatchException.class);
-            logger.info(String.format("Successfully threw a %s exception with cause %s",
+            log.info(String.format("Successfully threw a %s exception with cause %s",
                     ProvisioningException.class.getSimpleName(), PropertyMismatchException.class.getSimpleName()));
         } finally {
             jcsmpSession.deprovision(queue, JCSMPSession.FLAG_IGNORE_DOES_NOT_EXIST);
@@ -704,7 +703,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                 .getQueueNames(destination0, group0, createConsumerProperties(), false)
                 .getConsumerGroupQueueName());
 
-        logger.info(String.format("Pre-provisioning queue %s with AccessType %s to conflict with defaultAccessType %s",
+        log.info(String.format("Pre-provisioning queue %s with AccessType %s to conflict with defaultAccessType %s",
                 queue.getName(), endpointProperties.getAccessType(), defaultAccessType));
         jcsmpSession.provision(queue, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
 
@@ -717,7 +716,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             fail("Expected consumer provisioning to fail due to queue property change");
         } catch (ProvisioningException e) {
             assertThat(e).hasCauseInstanceOf(PropertyMismatchException.class);
-            logger.info(String.format("Successfully threw a %s exception with cause %s",
+            log.info(String.format("Successfully threw a %s exception with cause %s",
                     ProvisioningException.class.getSimpleName(), PropertyMismatchException.class.getSimpleName()));
         } finally {
             jcsmpSession.deprovision(queue, JCSMPSession.FLAG_IGNORE_DOES_NOT_EXIST);
@@ -739,7 +738,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                 .getQueueNames(destination0, group0, createConsumerProperties(), false)
                 .getErrorQueueName());
 
-        logger.info(String.format("Pre-provisioning error queue %s with AccessType %s to conflict with defaultAccessType %s",
+        log.info(String.format("Pre-provisioning error queue %s with AccessType %s to conflict with defaultAccessType %s",
                 errorQueue.getName(), endpointProperties.getAccessType(), defaultAccessType));
         jcsmpSession.provision(errorQueue, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
 
@@ -753,7 +752,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             fail("Expected consumer provisioning to fail due to error queue property change");
         } catch (ProvisioningException e) {
             assertThat(e).hasCauseInstanceOf(PropertyMismatchException.class);
-            logger.info(String.format("Successfully threw a %s exception with cause %s",
+            log.info(String.format("Successfully threw a %s exception with cause %s",
                     ProvisioningException.class.getSimpleName(), PropertyMismatchException.class.getSimpleName()));
         } finally {
             jcsmpSession.deprovision(errorQueue, JCSMPSession.FLAG_IGNORE_DOES_NOT_EXIST);
@@ -793,14 +792,14 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         final CountDownLatch latch = new CountDownLatch(2);
         moduleInputChannel.subscribe(message1 -> {
-            logger.info(String.format("Received message %s", message1));
+            log.info(String.format("Received message %s", message1));
             latch.countDown();
         });
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel0.send(message);
 
-        logger.info(String.format("Sending message to destination %s: %s", destination1, message));
+        log.info(String.format("Sending message to destination %s: %s", destination1, message));
         moduleOutputChannel1.send(message);
 
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
@@ -846,14 +845,14 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         final CountDownLatch latch = new CountDownLatch(2);
         moduleInputChannel.subscribe(message1 -> {
-            logger.info(String.format("Received message %s", message1));
+            log.info(String.format("Received message %s", message1));
             latch.countDown();
         });
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel0.send(message);
 
-        logger.info(String.format("Sending message to destination %s: %s", destination1, message));
+        log.info(String.format("Sending message to destination %s: %s", destination1, message));
         moduleOutputChannel1.send(message);
 
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
@@ -874,7 +873,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             @ExecSvc(scheduled = true, poolSize = 5) ScheduledExecutorService executor,
             TestInfo testInfo) throws Exception {
         if (!batchMode && transacted) {
-            logger.info("non-batched, transacted consumers not yet supported");
+            log.info("non-batched, transacted consumers not yet supported");
             return;
         }
         SolaceTestBinder binder = getBinder();
@@ -924,7 +923,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                     Collections.singletonList((byte[]) message1.getPayload());
             for (byte[] payload : payloads) {
                 numMsgsConsumed.incrementAndGet();
-                logger.trace(String.format("Received message %s", new String(payload)));
+                log.trace(String.format("Received message %s", new String(payload)));
                 uniquePayloadsReceived.add(new String(payload));
             }
         });
@@ -937,13 +936,13 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                 Message<?> message = MessageBuilder.withPayload(payload.getBytes())
                         .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
                         .build();
-                logger.trace(String.format("Sending message %s", payload));
+                log.trace(String.format("Sending message %s", payload));
                 try {
                     moduleOutputChannel.send(message);
                     numMsgsSent += 1;
                 } catch (MessagingException e) {
                     if (e.getCause() instanceof JCSMPInterruptedException) {
-                        logger.warn("Received interrupt exception during message produce");
+                        log.warn("Received interrupt exception during message produce");
                         break;
                     } else {
                         throw e;
@@ -955,15 +954,15 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(5));
 
-        logger.info(String.format("Disabling egress to queue %s", queue0));
+        log.info(String.format("Disabling egress to queue %s", queue0));
         sempV2Api.config().updateMsgVpnQueue(new ConfigMsgVpnQueue().egressEnabled(false), vpnName, queue0, null, null);
         Thread.sleep(TimeUnit.SECONDS.toMillis(5));
 
-        logger.info(String.format("Enabling egress to queue %s", queue0));
+        log.info(String.format("Enabling egress to queue %s", queue0));
         sempV2Api.config().updateMsgVpnQueue(new ConfigMsgVpnQueue().egressEnabled(true), vpnName, queue0, null, null);
         Thread.sleep(TimeUnit.SECONDS.toMillis(5));
 
-        logger.info("Stopping producer");
+        log.info("Stopping producer");
         producerStop.set(true);
         int numMsgsSent = producerFuture.get(5, TimeUnit.SECONDS);
 
@@ -985,7 +984,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         // be added to the consumed msg count.
         softly.assertThat(numMsgsConsumed.get()).isGreaterThanOrEqualTo(numMsgsSent);
 
-        logger.info("num-sent: {}, num-consumed: {}, num-redelivered: {}", numMsgsSent, numMsgsConsumed.get(),
+        log.info("num-sent: {}, num-consumed: {}, num-redelivered: {}", numMsgsSent, numMsgsConsumed.get(),
                 queueState.getRedeliveredMsgCount());
         producerBinding.unbind();
         consumerBinding.unbind();
@@ -1002,7 +1001,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             @ExecSvc(scheduled = true, poolSize = 5) ScheduledExecutorService executor,
             TestInfo testInfo) throws Exception {
         if (!batchMode && transacted) {
-            logger.info("non-batched, transacted consumers not yet supported");
+            log.info("non-batched, transacted consumers not yet supported");
             return;
         }
         SolaceTestBinder binder = getBinder();
@@ -1052,7 +1051,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                     Collections.singletonList((byte[]) message1.getPayload());
             for (byte[] payload : payloads) {
                 numMsgsConsumed.incrementAndGet();
-                logger.trace(String.format("Received message %s", new String(payload)));
+                log.trace(String.format("Received message %s", new String(payload)));
                 uniquePayloadsReceived.add(new String(payload));
             }
         });
@@ -1065,13 +1064,13 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                 Message<?> message = MessageBuilder.withPayload(payload.getBytes())
                         .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
                         .build();
-                logger.trace(String.format("Sending message %s", payload));
+                log.trace(String.format("Sending message %s", payload));
                 try {
                     moduleOutputChannel.send(message);
                     numMsgsSent += 1;
                 } catch (MessagingException e) {
                     if (e.getCause() instanceof JCSMPInterruptedException) {
-                        logger.warn("Received interrupt exception during message produce");
+                        log.warn("Received interrupt exception during message produce");
                         break;
                     } else {
                         throw e;
@@ -1083,14 +1082,14 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(5));
 
-        logger.info("Unbinding consumer");
+        log.info("Unbinding consumer");
         consumerBinding.unbind();
 
-        logger.info("Stopping producer");
+        log.info("Stopping producer");
         producerStop.set(true);
         Thread.sleep(TimeUnit.SECONDS.toMillis(5));
 
-        logger.info("Rebinding consumer");
+        log.info("Rebinding consumer");
         consumerBinding = consumerInfrastructureUtil.createBinding(binder, destination0, group0, moduleInputChannel,
                 consumerProperties);
         Thread.sleep(TimeUnit.SECONDS.toMillis(5));
@@ -1116,7 +1115,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
         softly.assertThat(numMsgsConsumed.get() - redeliveredMsgs)
                 .isBetween((long) numMsgsSent - consumerProperties.getExtension().getBatchMaxSize(), (long) numMsgsSent);
 
-        logger.info("num-sent: {}, num-consumed: {}, num-redelivered: {}", numMsgsSent, numMsgsConsumed.get(),
+        log.info("num-sent: {}, num-consumed: {}, num-redelivered: {}", numMsgsSent, numMsgsConsumed.get(),
                 redeliveredMsgs);
         producerBinding.unbind();
         consumerBinding.unbind();
@@ -1192,7 +1191,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
             Destination reqReplyTo = request.getHeaders().get(SolaceHeaders.REPLY_TO, Destination.class);
             String reqPayload = (String) request.getPayload();
 
-            logger.info(String.format("Received request with correlationId [ %s ], replyTo [ %s ], payload [ %s ]",
+            log.info(String.format("Received request with correlationId [ %s ], replyTo [ %s ], payload [ %s ]",
                     reqCorrelationId, reqReplyTo, reqPayload));
 
             softly.assertThat(reqCorrelationId).isEqualTo(expectedCorrelationId);
@@ -1489,7 +1488,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
             binderBindUnbindLatency();
 
-            logger.info(String.format("Sending message to message handler: %s", message));
+            log.info(String.format("Sending message to message handler: %s", message));
             moduleOutputChannel.send(message);
 
             flowReceiver = jcsmpSession.createFlow(JCSMPFactory.onlyInstance().createQueue(destination), null, null);
@@ -1529,7 +1528,7 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
                     .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
                     .build();
 
-            logger.info(String.format("Sending message to message handler: %s", message));
+            log.info(String.format("Sending message to message handler: %s", message));
             moduleOutputChannel.send(message);
 
             BytesXMLMessage solMsg = consumer.receive(5000);
@@ -1673,11 +1672,9 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         retryAssert(() -> assertThat(
                 switch (endpointType) {
-                    case QUEUE ->
-                            getQueueTxFlows(sempV2Api, jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME), endpointName, 1).get(0).getSelector();
-                    case TOPIC_ENDPOINT ->
-                            sempV2Api.monitor().getMsgVpnTopicEndpoint(jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME),
-                                    endpointName, null).getData().getSelector();
+                    case QUEUE -> getQueueTxFlows(sempV2Api, jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME), endpointName, 1).get(0).getSelector();
+                    case TOPIC_ENDPOINT -> sempV2Api.monitor().getMsgVpnTopicEndpoint(jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME),
+                            endpointName, null).getData().getSelector();
                 }
         ).as("Selector not found for endpoint subscription %s", endpointName)
                 // all variants of blank selectors will be defaulted to ""
@@ -1736,11 +1733,9 @@ public class SolaceBinderBasicIT extends SpringCloudStreamContext {
 
         retryAssert(() -> assertThat(
                 switch (endpointType) {
-                    case QUEUE ->
-                            getQueueTxFlows(sempV2Api, jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME), endpointName, 1).get(0).getSelector();
-                    case TOPIC_ENDPOINT ->
-                            sempV2Api.monitor().getMsgVpnTopicEndpoint(jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME),
-                                    endpointName, null).getData().getSelector();
+                    case QUEUE -> getQueueTxFlows(sempV2Api, jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME), endpointName, 1).get(0).getSelector();
+                    case TOPIC_ENDPOINT -> sempV2Api.monitor().getMsgVpnTopicEndpoint(jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME),
+                            endpointName, null).getData().getSelector();
                 }
         ).as("Selector not found for endpoint subscription %s", endpointName)
                 // all variants of blank selectors will be defaulted to ""

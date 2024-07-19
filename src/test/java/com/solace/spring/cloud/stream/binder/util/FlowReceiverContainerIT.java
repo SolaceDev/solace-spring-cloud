@@ -15,22 +15,18 @@ import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueTxFlo
 import com.solace.test.integration.semp.v2.monitor.model.MonitorSempMetaOnlyResponse;
 import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.*;
+import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.junitpioneer.jupiter.cartesian.CartesianTest.Values;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
@@ -49,6 +45,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Slf4j
 @SpringJUnitConfig(classes = SolaceJavaAutoConfiguration.class,
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(ExecutorServiceExtension.class)
@@ -60,7 +57,6 @@ public class FlowReceiverContainerIT {
     private final AtomicReference<FlowReceiverContainer> transactedFlowReceiverContainerReference = new AtomicReference<>();
     private XMLMessageProducer producer;
 
-    private static final Logger logger = LoggerFactory.getLogger(FlowReceiverContainerIT.class);
 
     @BeforeEach
     public void setup(JCSMPSession jcsmpSession) throws Exception {
@@ -68,12 +64,12 @@ public class FlowReceiverContainerIT {
         producer = jcsmpSession.getMessageProducer(new JCSMPStreamingPublishCorrelatingEventHandler() {
             @Override
             public void responseReceivedEx(Object key) {
-                logger.debug("Got message with key: " + key);
+                log.debug("Got message with key: " + key);
             }
 
             @Override
             public void handleErrorEx(Object o, JCSMPException e, long l) {
-                logger.error("Failed to send message", e);
+                log.error("Failed to send message", e);
             }
         });
     }
@@ -744,7 +740,7 @@ public class FlowReceiverContainerIT {
             Thread.sleep(TimeUnit.SECONDS.toMillis(5));
             assertFalse(receiveFuture.isDone());
 
-            logger.info(String.format("Disabling egress to queue %s", queue.getName()));
+            log.info(String.format("Disabling egress to queue %s", queue.getName()));
             sempV2Api.config().updateMsgVpnQueue(new ConfigMsgVpnQueue().egressEnabled(false), vpnName, queue.getName(),
                     null, null);
             retryAssert(() -> assertFalse(sempV2Api.monitor()
@@ -752,10 +748,10 @@ public class FlowReceiverContainerIT {
                     .getData()
                     .isEgressEnabled()));
 
-            logger.info(String.format("Sending message to queue %s", queue.getName()));
+            log.info(String.format("Sending message to queue %s", queue.getName()));
             producer.send(JCSMPFactory.onlyInstance().createMessage(TextMessage.class), queue);
 
-            logger.info(String.format("Enabling egress to queue %s", queue.getName()));
+            log.info(String.format("Enabling egress to queue %s", queue.getName()));
             sempV2Api.config().updateMsgVpnQueue(new ConfigMsgVpnQueue().egressEnabled(true), vpnName, queue.getName(),
                     null, null);
             retryAssert(() -> assertTrue(sempV2Api.monitor()
@@ -790,11 +786,11 @@ public class FlowReceiverContainerIT {
             Thread.sleep(TimeUnit.SECONDS.toMillis(5));
             assertFalse(receiveFuture.isDone());
 
-            logger.info(String.format("Remotely disconnecting client %s", clientName));
+            log.info(String.format("Remotely disconnecting client %s", clientName));
             sempV2Api.action().doMsgVpnClientDisconnect(new ActionMsgVpnClientDisconnect(), vpnName, clientName);
             Thread.sleep(TimeUnit.SECONDS.toMillis(5));
 
-            logger.info(String.format("Sending message to queue %s", queue.getName()));
+            log.info(String.format("Sending message to queue %s", queue.getName()));
             producer.send(JCSMPFactory.onlyInstance().createMessage(TextMessage.class), queue);
 
             assertNotNull(receiveFuture.get(1, TimeUnit.MINUTES));
@@ -842,7 +838,7 @@ public class FlowReceiverContainerIT {
         MessageContainer receivedMessage = flowReceiverContainer.receive();
         assertNotNull(receivedMessage);
 
-        logger.info(String.format("Disabling egress to queue %s", queue.getName()));
+        log.info(String.format("Disabling egress to queue %s", queue.getName()));
         sempV2Api.config().updateMsgVpnQueue(new ConfigMsgVpnQueue().egressEnabled(false), vpnName, queue.getName(),
                 null, null);
         retryAssert(() -> assertFalse(sempV2Api.monitor()
@@ -852,7 +848,7 @@ public class FlowReceiverContainerIT {
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(1));
 
-        logger.info(String.format("Enabling egress to queue %s", queue.getName()));
+        log.info(String.format("Enabling egress to queue %s", queue.getName()));
         sempV2Api.config().updateMsgVpnQueue(new ConfigMsgVpnQueue().egressEnabled(true), vpnName, queue.getName(),
                 null, null);
         retryAssert(() -> assertTrue(sempV2Api.monitor()
@@ -860,7 +856,7 @@ public class FlowReceiverContainerIT {
                 .getData()
                 .isEgressEnabled()));
 
-        logger.info(String.format("Acknowledging message %s", receivedMessage.getMessage().getMessageId()));
+        log.info(String.format("Acknowledging message %s", receivedMessage.getMessage().getMessageId()));
         flowReceiverContainer.acknowledge(receivedMessage);
 
         receivedMessage = flowReceiverContainer.receive();
@@ -892,11 +888,11 @@ public class FlowReceiverContainerIT {
 
         String clientName = (String) jcsmpSession.getProperty(JCSMPProperties.CLIENT_NAME);
 
-        logger.info(String.format("Remotely disconnecting client %s", clientName));
+        log.info(String.format("Remotely disconnecting client %s", clientName));
         sempV2Api.action().doMsgVpnClientDisconnect(new ActionMsgVpnClientDisconnect(), vpnName, clientName);
         Thread.sleep(TimeUnit.SECONDS.toMillis(5));
 
-        logger.info(String.format("Acknowledging message %s", receivedMessage.getMessage().getMessageId()));
+        log.info(String.format("Acknowledging message %s", receivedMessage.getMessage().getMessageId()));
         //The redelivery flow is kind of Renumber flow, below ack will be discarded by broker
         flowReceiverContainer.acknowledge(receivedMessage);
 
@@ -963,7 +959,7 @@ public class FlowReceiverContainerIT {
                 transacted,
                 new EndpointProperties(),
                 new ConsumerFlowProperties())))) {
-            logger.info("Created new FlowReceiverContainer {}", ref.get().getId());
+            log.info("Created new FlowReceiverContainer {}", ref.get().getId());
         }
 
         return ref.get();

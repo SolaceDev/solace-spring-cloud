@@ -2,10 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.3] - 2024-07-19
+### Added
+- Cache JCSMPSessions and provide them as Bean to avoid multiple connections to the same broker.
+- Add .editorconfig and reformat the whole code.
+
+### Changed
+- Bump versions of solace jcsmp to 10.24.1
+- Use only Slf4j to log.
+
 ## [4.2.2] - 2024-07-04
 ### Changed
 - Bump versions of solace jcsmp to 10.24.0
-- 
+
 ## [4.2.1] - 2024-06-24
 ### Changed
 - Bump versions to spring boot 3.3.1
@@ -41,7 +50,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Flatten maven structure into a single project (no need for dependency management or starter).
-- Upgrade dependencies: 
+- Upgrade dependencies:
   - spring-boot: 3.2.5
   - spring-cloud: 2023.0.1
   - sol-jcsmp: 10.23.0

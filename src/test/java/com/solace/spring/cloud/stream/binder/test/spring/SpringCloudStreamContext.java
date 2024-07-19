@@ -6,15 +6,10 @@ import com.solace.spring.cloud.stream.binder.test.util.SolaceTestBinder;
 import com.solace.spring.cloud.stream.binder.util.JCSMPSessionEventHandler;
 import com.solace.test.integration.semp.v2.SempV2Api;
 import com.solacesystems.jcsmp.JCSMPSession;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cloud.stream.binder.DefaultPollableMessageSource;
-import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
-import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
-import org.springframework.cloud.stream.binder.PartitionCapableBinderTests;
-import org.springframework.cloud.stream.binder.Spy;
+import org.springframework.cloud.stream.binder.*;
 import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.integration.channel.AbstractSubscribableChannel;
 import org.springframework.integration.channel.DirectChannel;
@@ -32,10 +27,10 @@ import java.util.Objects;
  *
  * @see com.solace.spring.cloud.stream.binder.test.junit.extension.SpringCloudStreamExtension SpringCloudStreamExtension
  */
+@Slf4j
 public class SpringCloudStreamContext extends PartitionCapableBinderTests<SolaceTestBinder,
         ExtendedConsumerProperties<SolaceConsumerProperties>, ExtendedProducerProperties<SolaceProducerProperties>>
         implements ExtensionContext.Store.CloseableResource {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SpringCloudStreamContext.class);
     private JCSMPSession jcsmpSession;
     private final JCSMPSessionEventHandler jcsmpSessionEventHandler = new JCSMPSessionEventHandler();
     private SempV2Api sempV2Api;
@@ -69,7 +64,7 @@ public class SpringCloudStreamContext extends PartitionCapableBinderTests<Solace
             if (jcsmpSession == null || jcsmpSession.isClosed()) {
                 throw new IllegalStateException("JCSMPSession cannot be null or closed");
             }
-            logger.info("Creating new test binder");
+            log.info("Creating new test binder");
             testBinder = new SolaceTestBinder(jcsmpSession, jcsmpSessionEventHandler, sempV2Api);
         }
         return testBinder;
@@ -129,7 +124,7 @@ public class SpringCloudStreamContext extends PartitionCapableBinderTests<Solace
     @Override
     public void close() {
         if (testBinder != null) {
-            LOGGER.info("Destroying binder");
+            log.info("Destroying binder");
             testBinder.getBinder().destroy();
             testBinder = null;
         }

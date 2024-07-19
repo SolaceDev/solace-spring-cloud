@@ -6,6 +6,7 @@ import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;
 import com.solace.test.integration.semp.v2.config.model.ConfigMsgVpnQueue;
 import com.solacesystems.jcsmp.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,6 +29,7 @@ import static com.solace.spring.cloud.stream.binder.test.util.RetryableAssertion
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Slf4j
 @SpringJUnitConfig(classes = SolaceJavaAutoConfiguration.class,
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(PubSubPlusExtension.class)
@@ -158,7 +160,7 @@ public class ErrorQueueRepublishCorrelationKeyIT {
         MessageContainer messageContainer = flowReceiverContainer.receive(5000);
         ErrorQueueRepublishCorrelationKey key = createKey(messageContainer, flowReceiverContainer);
 
-        logger.info(String.format("Shutting down ingress for queue %s", errorQueue.getName()));
+        log.info(String.format("Shutting down ingress for queue %s", errorQueue.getName()));
         sempV2Api.config().updateMsgVpnQueue(new ConfigMsgVpnQueue().ingressEnabled(false),
                 vpnName, errorQueue.getName(),
                 null, null);
@@ -170,7 +172,7 @@ public class ErrorQueueRepublishCorrelationKeyIT {
         CountDownLatch latch = new CountDownLatch(1);
         Mockito.doAnswer(invocation -> {
             if (key.getErrorQueueDeliveryAttempt() == errorQueueInfrastructure.getMaxDeliveryAttempts()) {
-                logger.info(String.format("Starting ingress for queue %s", errorQueue.getName()));
+                log.info(String.format("Starting ingress for queue %s", errorQueue.getName()));
                 sempV2Api.config().updateMsgVpnQueue(new ConfigMsgVpnQueue().ingressEnabled(true),
                         vpnName, errorQueue.getName(),
                         null, null);

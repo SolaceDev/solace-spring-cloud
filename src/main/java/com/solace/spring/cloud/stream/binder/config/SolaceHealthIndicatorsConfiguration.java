@@ -6,20 +6,19 @@ import com.solace.spring.cloud.stream.binder.health.contributors.SolaceBinderHea
 import com.solace.spring.cloud.stream.binder.health.handlers.SolaceSessionEventHandler;
 import com.solace.spring.cloud.stream.binder.health.indicators.SessionHealthIndicator;
 import com.solace.spring.cloud.stream.binder.properties.SolaceSessionHealthProperties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@Slf4j
 @Configuration
 @ConditionalOnClass(name = "org.springframework.boot.actuate.health.HealthIndicator")
 @ConditionalOnEnabledHealthIndicator("binders")
 @EnableConfigurationProperties({SolaceSessionHealthProperties.class})
 public class SolaceHealthIndicatorsConfiguration {
-    private static final Log logger = LogFactory.getLog(SolaceHealthIndicatorsConfiguration.class);
 
     @Bean
     public SolaceBinderHealthAccessor solaceBinderHealthAccessor(
@@ -30,8 +29,8 @@ public class SolaceHealthIndicatorsConfiguration {
     @Bean
     public SolaceBinderHealthContributor solaceBinderHealthContributor(
             SolaceSessionHealthProperties solaceSessionHealthProperties) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Creating Solace Connection Health Indicators Hierarchy");
+        if (log.isDebugEnabled()) {
+            log.debug("Creating Solace Connection Health Indicators Hierarchy");
         }
         return new SolaceBinderHealthContributor(
                 new SessionHealthIndicator(solaceSessionHealthProperties),
@@ -41,8 +40,8 @@ public class SolaceHealthIndicatorsConfiguration {
 
     @Bean
     public SolaceSessionEventHandler solaceSessionEventHandler(SolaceBinderHealthContributor healthContributor) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Creating Solace Session Event Handler for monitoring Health");
+        if (log.isDebugEnabled()) {
+            log.debug("Creating Solace Session Event Handler for monitoring Health");
         }
         return new SolaceSessionEventHandler(healthContributor.getSolaceSessionHealthIndicator());
     }

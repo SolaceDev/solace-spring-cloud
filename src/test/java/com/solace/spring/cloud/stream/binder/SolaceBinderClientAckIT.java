@@ -12,11 +12,15 @@ import com.solace.test.integration.junit.jupiter.extension.ExecutorServiceExtens
 import com.solace.test.integration.junit.jupiter.extension.ExecutorServiceExtension.ExecSvc;
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;
-import com.solace.test.integration.semp.v2.monitor.model.*;
+import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueMsgsResponse;
+import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnTopicEndpointMsgsResponse;
+import com.solace.test.integration.semp.v2.monitor.model.MonitorSempMeta;
+import com.solace.test.integration.semp.v2.monitor.model.MonitorSempPaging;
 import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.Queue;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.TestInfo;
@@ -25,8 +29,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.junitpioneer.jupiter.cartesian.CartesianTest.Values;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.cloud.stream.binder.Binding;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
@@ -58,13 +60,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * All tests regarding client acknowledgment
  */
+@Slf4j
 @SpringJUnitConfig(classes = SolaceJavaAutoConfiguration.class,
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(PubSubPlusExtension.class)
 @ExtendWith(SpringCloudStreamExtension.class)
 @ExtendWith(ExecutorServiceExtension.class)
 public class SolaceBinderClientAckIT<T> {
-    private static final Logger logger = LoggerFactory.getLogger(SolaceBinderClientAckIT.class);
 
     @CartesianTest(name = "[{index}] channelType={0}, batchMode={1}, endpointType={2}")
     public void testAccept(@Values(classes = {DirectChannel.class, PollableSource.class}) Class<T> channelType,
@@ -319,13 +321,13 @@ public class SolaceBinderClientAckIT<T> {
         consumerInfrastructureUtil.sendAndSubscribe(moduleInputChannel, 1,
                 () -> messages.forEach(moduleOutputChannel::send),
                 (msg, callback) -> {
-                    logger.info("Received message");
+                    log.info("Received message");
                     AcknowledgmentCallback ackCallback = StaticMessageHeaderAccessor.getAcknowledgmentCallback(msg);
                     Objects.requireNonNull(ackCallback).noAutoAck();
                     executorService.schedule(() -> {
                         softly.assertThat(queueName)
                                 .satisfies(q -> validateNumEnqueuedMessages(context, sempV2Api, q, messages.size()));
-                        logger.info("Async acknowledging message");
+                        log.info("Async acknowledging message");
                         AckUtils.accept(ackCallback);
                         callback.run();
                     }, 2, TimeUnit.SECONDS);
@@ -608,10 +610,10 @@ public class SolaceBinderClientAckIT<T> {
                 () -> messages.forEach(moduleOutputChannel::send),
                 (msg, callback) -> {
                     if (isRedelivered(msg, batchMode)) {
-                        logger.info("Received redelivered message");
+                        log.info("Received redelivered message");
                         callback.run();
                     } else {
-                        logger.info("Received message");
+                        log.info("Received message");
                         Objects.requireNonNull(StaticMessageHeaderAccessor.getAcknowledgmentCallback(msg)).noAutoAck();
                         callback.run();
                         throw new RuntimeException("expected exception");
@@ -667,10 +669,10 @@ public class SolaceBinderClientAckIT<T> {
                     AcknowledgmentCallback acknowledgmentCallback = StaticMessageHeaderAccessor.getAcknowledgmentCallback(msg);
                     Objects.requireNonNull(acknowledgmentCallback).noAutoAck();
                     if (isRedelivered(msg, batchMode)) {
-                        logger.info("Received redelivered message");
+                        log.info("Received redelivered message");
                         redeliveredLatch.countDown();
                     } else {
-                        logger.info("Receiving message");
+                        log.info("Receiving message");
                         AckUtils.accept(acknowledgmentCallback);
                         callback.run();
                         throw new RuntimeException("expected exception");
@@ -725,11 +727,11 @@ public class SolaceBinderClientAckIT<T> {
                 () -> messages.forEach(moduleOutputChannel::send),
                 (msg, callback) -> {
                     if (isRedelivered(msg, batchMode)) {
-                        logger.info("Received redelivered message");
+                        log.info("Received redelivered message");
                         wasRedelivered.set(true);
                         callback.run();
                     } else {
-                        logger.info("Receiving message");
+                        log.info("Receiving message");
                         AcknowledgmentCallback ackCallback = StaticMessageHeaderAccessor.getAcknowledgmentCallback(msg);
                         Objects.requireNonNull(ackCallback).noAutoAck();
                         AckUtils.reject(ackCallback);
@@ -785,10 +787,10 @@ public class SolaceBinderClientAckIT<T> {
                 () -> messages.forEach(moduleOutputChannel::send),
                 (msg, callback) -> {
                     if (isRedelivered(msg, batchMode)) {
-                        logger.info("Received redelivered message");
+                        log.info("Received redelivered message");
                         callback.run();
                     } else {
-                        logger.info("Receiving message");
+                        log.info("Receiving message");
                         AcknowledgmentCallback ackCallback = StaticMessageHeaderAccessor.getAcknowledgmentCallback(msg);
                         Objects.requireNonNull(ackCallback).noAutoAck();
                         AckUtils.requeue(ackCallback);
@@ -909,10 +911,10 @@ public class SolaceBinderClientAckIT<T> {
                     AcknowledgmentCallback acknowledgmentCallback = StaticMessageHeaderAccessor.getAcknowledgmentCallback(msg);
                     Objects.requireNonNull(acknowledgmentCallback).noAutoAck();
                     if (isRedelivered(msg, batchMode)) {
-                        logger.info("Received redelivered message");
+                        log.info("Received redelivered message");
                         redeliveredLatch.countDown();
                     } else {
-                        logger.info("Receiving message");
+                        log.info("Receiving message");
                         AckUtils.accept(acknowledgmentCallback);
                         callback.run();
                         throw new RuntimeException("expected exception");
@@ -1030,10 +1032,10 @@ public class SolaceBinderClientAckIT<T> {
                 () -> messages.forEach(moduleOutputChannel::send),
                 (msg, callback) -> {
                     if (isRedelivered(msg, batchMode)) {
-                        logger.info("Received redelivered message");
+                        log.info("Received redelivered message");
                         callback.run();
                     } else {
-                        logger.info("Receiving message");
+                        log.info("Receiving message");
                         AcknowledgmentCallback ackCallback = StaticMessageHeaderAccessor.getAcknowledgmentCallback(msg);
                         Objects.requireNonNull(ackCallback).noAutoAck();
                         AckUtils.requeue(ackCallback);
@@ -1099,7 +1101,7 @@ public class SolaceBinderClientAckIT<T> {
                             .satisfies(isValidMessage(channelType, consumerProperties,
                                     messages.subList(0, consumerProperties.getExtension().getBatchMaxSize())));
                     if (!firstReceivedMessage.get()) {
-                        logger.info("Got first message");
+                        log.info("Got first message");
                         executorService.schedule(() -> {
                             softly.assertThat(queueName).satisfies(q ->
                                     validateNumEnqueuedMessages(context, sempV2Api, q, messages.size()));
@@ -1108,7 +1110,7 @@ public class SolaceBinderClientAckIT<T> {
                         }, 2, TimeUnit.SECONDS);
                         firstReceivedMessage.set(true);
                     } else if (isRedelivered(msg, true)) {
-                        logger.info("Got redelivered message");
+                        log.info("Got redelivered message");
                         wasRedelivered.set(true);
                         try {
                             ackCallback.acknowledge(AcknowledgmentCallback.Status.ACCEPT);

@@ -12,23 +12,24 @@ import java.util.function.Supplier;
  * A PubSubPlusContainer provider using the default settings.
  */
 public class SimpleContainerProvider implements PubSubPlusExtension.ContainerProvider {
-	public Supplier<PubSubPlusContainer> containerSupplier(ExtensionContext extensionContext) {
-		return PubSubPlusContainer::new;
-	}
+    public Supplier<PubSubPlusContainer> containerSupplier(ExtensionContext extensionContext) {
+        return PubSubPlusContainer::new;
+    }
 
-	public void containerPostStart(ExtensionContext extensionContext, PubSubPlusContainer container) {}
+    public void containerPostStart(ExtensionContext extensionContext, PubSubPlusContainer container) {
+    }
 
-	public JCSMPProperties createJcsmpProperties(ExtensionContext extensionContext, PubSubPlusContainer container) {
-		JCSMPProperties jcsmpProperties = new JCSMPProperties();
-		jcsmpProperties.setProperty(JCSMPProperties.HOST, container.getOrigin(PubSubPlusContainer.Port.SMF));
-		jcsmpProperties.setProperty(JCSMPProperties.USERNAME, "default");
-		jcsmpProperties.setProperty(JCSMPProperties.VPN_NAME, "default");
-		return jcsmpProperties;
-	}
+    public JCSMPProperties createJcsmpProperties(ExtensionContext extensionContext, PubSubPlusContainer container) {
+        JCSMPProperties jcsmpProperties = new JCSMPProperties();
+        jcsmpProperties.setProperty(JCSMPProperties.HOST, container.getOrigin(PubSubPlusContainer.Port.SMF));
+        jcsmpProperties.setProperty(JCSMPProperties.USERNAME, "default");
+        jcsmpProperties.setProperty(JCSMPProperties.VPN_NAME, "default");
+        return jcsmpProperties;
+    }
 
-	public SempV2Api createSempV2Api(ExtensionContext extensionContext, PubSubPlusContainer container) {
-		return new SempV2Api(container.getOrigin(PubSubPlusContainer.Port.SEMP),
-				container.getAdminUsername(),
-				container.getAdminPassword());
-	}
+    public SempV2Api createSempV2Api(ExtensionContext extensionContext, PubSubPlusContainer container) {
+        return new SempV2Api(container.getOrigin(PubSubPlusContainer.Port.SEMP),
+                container.getAdminUsername(),
+                container.getAdminPassword());
+    }
 }

@@ -267,6 +267,8 @@ When set to `true`, messages will be received using local transactions.
 +
 Default: `false`
 +
+WARNING: A transacted producer cannot be used by multiple threads.
++
 NOTE: The maximum transaction size is 256 messages. +
 The size of the transaction is controlled by the batched message's size. See <<Batch Consumers>> for more info.
 

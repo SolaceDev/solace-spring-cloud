@@ -24,6 +24,7 @@ import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueTxFlo
 import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnQueueTxFlowResponse;
 import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.Test;
@@ -36,8 +37,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.junitpioneer.jupiter.cartesian.CartesianTest.Values;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.cloud.stream.binder.*;
 import org.springframework.cloud.stream.config.BindingProperties;
@@ -70,12 +69,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * All tests which modify the default provisioning lifecycle.
  */
+@Slf4j
 @SpringJUnitConfig(classes = SolaceJavaAutoConfiguration.class,
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(PubSubPlusExtension.class)
 @ExtendWith(SpringCloudStreamExtension.class)
 public class SolaceBinderProvisioningLifecycleIT {
-    private static final Logger logger = LoggerFactory.getLogger(SolaceBinderProvisioningLifecycleIT.class);
 
     @ParameterizedTest
     @EnumSource(EndpointType.class)
@@ -101,10 +100,9 @@ public class SolaceBinderProvisioningLifecycleIT {
             case QUEUE -> endpoint = EndpointProvider.QUEUE_PROVIDER.createInstance(SolaceProvisioningUtil
                     .getQueueNames(destination0, group0, consumerProperties, false)
                     .getConsumerGroupQueueName());
-            case TOPIC_ENDPOINT ->
-                    endpoint = EndpointProvider.TOPIC_ENDPOINT_PROVIDER.createInstance(SolaceProvisioningUtil
-                            .getQueueNames(destination0, group0, consumerProperties, false)
-                            .getConsumerGroupQueueName());
+            case TOPIC_ENDPOINT -> endpoint = EndpointProvider.TOPIC_ENDPOINT_PROVIDER.createInstance(SolaceProvisioningUtil
+                    .getQueueNames(destination0, group0, consumerProperties, false)
+                    .getConsumerGroupQueueName());
         }
 
 
@@ -115,7 +113,7 @@ public class SolaceBinderProvisioningLifecycleIT {
         Binding<MessageChannel> consumerBinding = null;
 
         try {
-            logger.info(String.format("Pre-provisioning endpoint %s with Permission %s", endpoint.getName(), endpointProperties.getPermission()));
+            log.info(String.format("Pre-provisioning endpoint %s with Permission %s", endpoint.getName(), endpointProperties.getPermission()));
             jcsmpSession.provision(endpoint, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
 
             producerBinding = binder.bindProducer(destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
@@ -129,7 +127,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 
             final CountDownLatch latch = new CountDownLatch(1);
             moduleInputChannel.subscribe(message1 -> {
-                logger.info(String.format("Received message %s", message1));
+                log.info(String.format("Received message %s", message1));
                 latch.countDown();
             });
 
@@ -172,7 +170,7 @@ public class SolaceBinderProvisioningLifecycleIT {
         Binding<MessageChannel> consumerBinding = null;
 
         try {
-            logger.info(String.format("Pre-provisioning queue %s with Permission %s", queue.getName(), endpointProperties.getPermission()));
+            log.info(String.format("Pre-provisioning queue %s with Permission %s", queue.getName(), endpointProperties.getPermission()));
             jcsmpSession.provision(queue, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
 
             producerBinding = binder.bindProducer(destination0, moduleOutputChannel, producerProperties);
@@ -186,7 +184,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 
             final CountDownLatch latch = new CountDownLatch(1);
             moduleInputChannel.subscribe(message1 -> {
-                logger.info(String.format("Received message %s", message1));
+                log.info(String.format("Received message %s", message1));
                 latch.countDown();
             });
 
@@ -226,10 +224,9 @@ public class SolaceBinderProvisioningLifecycleIT {
             case QUEUE -> endpoint = EndpointProvider.QUEUE_PROVIDER.createInstance(SolaceProvisioningUtil
                     .getQueueNames(destination0, group0, consumerProperties, false)
                     .getConsumerGroupQueueName());
-            case TOPIC_ENDPOINT ->
-                    endpoint = EndpointProvider.TOPIC_ENDPOINT_PROVIDER.createInstance(SolaceProvisioningUtil
-                            .getQueueNames(destination0, group0, consumerProperties, false)
-                            .getConsumerGroupQueueName());
+            case TOPIC_ENDPOINT -> endpoint = EndpointProvider.TOPIC_ENDPOINT_PROVIDER.createInstance(SolaceProvisioningUtil
+                    .getQueueNames(destination0, group0, consumerProperties, false)
+                    .getConsumerGroupQueueName());
         }
 
 
@@ -240,7 +237,7 @@ public class SolaceBinderProvisioningLifecycleIT {
         Binding<PollableSource<MessageHandler>> consumerBinding = null;
 
         try {
-            logger.info(String.format("Pre-provisioning endpoint %s with Permission %s", endpoint.getName(), endpointProperties.getPermission()));
+            log.info(String.format("Pre-provisioning endpoint %s with Permission %s", endpoint.getName(), endpointProperties.getPermission()));
             jcsmpSession.provision(endpoint, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
 
             producerBinding = binder.bindProducer(destination0, moduleOutputChannel, context.createProducerProperties(testInfo));
@@ -252,12 +249,12 @@ public class SolaceBinderProvisioningLifecycleIT {
 
             context.binderBindUnbindLatency();
 
-            logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+            log.info(String.format("Sending message to destination %s: %s", destination0, message));
             moduleOutputChannel.send(message);
 
             boolean gotMessage = false;
             for (int i = 0; !gotMessage && i < 100; i++) {
-                gotMessage = moduleInputChannel.poll(message1 -> logger.info(String.format("Received message %s", message1)));
+                gotMessage = moduleInputChannel.poll(message1 -> log.info(String.format("Received message %s", message1)));
             }
             assertThat(gotMessage).isTrue();
         } finally {
@@ -296,7 +293,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 
         final CountDownLatch latch = new CountDownLatch(1);
         moduleInputChannel.subscribe(message1 -> {
-            logger.info(String.format("Received message %s", message1));
+            log.info(String.format("Received message %s", message1));
             latch.countDown();
         });
 
@@ -331,7 +328,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             int expectedSubcodeEx = JCSMPErrorResponseSubcodeEx.UNKNOWN_QUEUE_NAME;
             assertThat(e).hasCauseInstanceOf(JCSMPErrorResponseException.class);
             assertThat(((JCSMPErrorResponseException) e.getCause()).getSubcodeEx()).isEqualTo(expectedSubcodeEx);
-            logger.info(String.format("Successfully threw a %s exception with cause %s, subcode: %s",
+            log.info(String.format("Successfully threw a %s exception with cause %s, subcode: %s",
                     ProvisioningException.class.getSimpleName(), JCSMPErrorResponseException.class.getSimpleName(),
                     JCSMPErrorResponseSubcodeEx.getSubcodeAsString(expectedSubcodeEx)));
         }
@@ -360,7 +357,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             int expectedSubcodeEx = JCSMPErrorResponseSubcodeEx.UNKNOWN_QUEUE_NAME;
             assertThat(e).hasCauseInstanceOf(JCSMPErrorResponseException.class);
             assertThat(((JCSMPErrorResponseException) e.getCause()).getSubcodeEx()).isEqualTo(expectedSubcodeEx);
-            logger.info(String.format("Successfully threw a %s exception with cause %s, subcode: %s",
+            log.info(String.format("Successfully threw a %s exception with cause %s, subcode: %s",
                     ProvisioningException.class.getSimpleName(), JCSMPErrorResponseException.class.getSimpleName(),
                     JCSMPErrorResponseSubcodeEx.getSubcodeAsString(expectedSubcodeEx)));
         }
@@ -389,7 +386,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             int expectedSubcodeEx = JCSMPErrorResponseSubcodeEx.UNKNOWN_QUEUE_NAME;
             assertThat(e).hasCauseInstanceOf(JCSMPErrorResponseException.class);
             assertThat(((JCSMPErrorResponseException) e.getCause()).getSubcodeEx()).isEqualTo(expectedSubcodeEx);
-            logger.info(String.format("Successfully threw a %s exception with cause %s, subcode: %s",
+            log.info(String.format("Successfully threw a %s exception with cause %s, subcode: %s",
                     ProvisioningException.class.getSimpleName(), JCSMPErrorResponseException.class.getSimpleName(),
                     JCSMPErrorResponseSubcodeEx.getSubcodeAsString(expectedSubcodeEx)));
         }
@@ -418,7 +415,7 @@ public class SolaceBinderProvisioningLifecycleIT {
         Binding<MessageChannel> consumerBinding = null;
 
         try {
-            logger.info(String.format("Pre-provisioning error queue %s", errorQueue.getName()));
+            log.info(String.format("Pre-provisioning error queue %s", errorQueue.getName()));
             jcsmpSession.provision(errorQueue, new EndpointProperties(), JCSMPSession.WAIT_FOR_CONFIRM);
 
             consumerBinding = binder.bindConsumer(destination0, group0, moduleInputChannel, consumerProperties);
@@ -453,7 +450,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             int expectedSubcodeEx = JCSMPErrorResponseSubcodeEx.UNKNOWN_QUEUE_NAME;
             assertThat(e).hasCauseInstanceOf(JCSMPErrorResponseException.class);
             assertThat(((JCSMPErrorResponseException) e.getCause()).getSubcodeEx()).isEqualTo(expectedSubcodeEx);
-            logger.info(String.format("Successfully threw a %s exception with cause %s, subcode: %s",
+            log.info(String.format("Successfully threw a %s exception with cause %s, subcode: %s",
                     ProvisioningException.class.getSimpleName(), JCSMPErrorResponseException.class.getSimpleName(),
                     JCSMPErrorResponseSubcodeEx.getSubcodeAsString(expectedSubcodeEx)));
         }
@@ -486,20 +483,20 @@ public class SolaceBinderProvisioningLifecycleIT {
 
         final CountDownLatch latch = new CountDownLatch(1);
         moduleInputChannel.subscribe(message1 -> {
-            logger.info(String.format("Received message %s", message1));
+            log.info(String.format("Received message %s", message1));
             latch.countDown();
         });
 
-        logger.info(String.format("Checking that there is no subscription is on group %s of destination %s", group0, destination0));
+        log.info(String.format("Checking that there is no subscription is on group %s of destination %s", group0, destination0));
         moduleOutputChannel.send(message);
         assertThat(latch.await(10, TimeUnit.SECONDS)).isFalse();
 
         Queue queue = JCSMPFactory.onlyInstance().createQueue(binder.getConsumerQueueName(consumerBinding));
         Topic topic = JCSMPFactory.onlyInstance().createTopic(destination0);
-        logger.info(String.format("Subscribing queue %s to topic %s", queue.getName(), topic.getName()));
+        log.info(String.format("Subscribing queue %s to topic %s", queue.getName(), topic.getName()));
         jcsmpSession.addSubscription(queue, topic, JCSMPSession.WAIT_FOR_CONFIRM);
 
-        logger.info(String.format("Sending message to destination %s", destination0));
+        log.info(String.format("Sending message to destination %s", destination0));
         moduleOutputChannel.send(message);
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
         TimeUnit.SECONDS.sleep(1); // Give bindings a sec to finish processing successful message consume
@@ -540,20 +537,20 @@ public class SolaceBinderProvisioningLifecycleIT {
 
         final CountDownLatch latch = new CountDownLatch(1);
         moduleInputChannel.subscribe(message1 -> {
-            logger.info(String.format("Received message %s", message1));
+            log.info(String.format("Received message %s", message1));
             latch.countDown();
         });
 
-        logger.info(String.format("Checking that there is no subscription is on group %s of destination %s", group0, destination0));
+        log.info(String.format("Checking that there is no subscription is on group %s of destination %s", group0, destination0));
         moduleOutputChannel.send(message);
         assertThat(latch.await(10, TimeUnit.SECONDS)).isFalse();
 
         Queue queue = JCSMPFactory.onlyInstance().createQueue(binder.getConsumerQueueName(consumerBinding));
         Topic topic = JCSMPFactory.onlyInstance().createTopic(destination0);
-        logger.info(String.format("Subscribing queue %s to topic %s", queue.getName(), topic.getName()));
+        log.info(String.format("Subscribing queue %s to topic %s", queue.getName(), topic.getName()));
         jcsmpSession.addSubscription(queue, topic, JCSMPSession.WAIT_FOR_CONFIRM);
 
-        logger.info(String.format("Sending message to destination %s", destination0));
+        log.info(String.format("Sending message to destination %s", destination0));
         moduleOutputChannel.send(message);
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
         TimeUnit.SECONDS.sleep(1); // Give bindings a sec to finish processing successful message consume
@@ -588,7 +585,7 @@ public class SolaceBinderProvisioningLifecycleIT {
 
         context.binderBindUnbindLatency();
 
-        logger.info(String.format("Checking that there is no subscription is on group %s of destination %s", group0, destination0));
+        log.info(String.format("Checking that there is no subscription is on group %s of destination %s", group0, destination0));
         moduleOutputChannel.send(message);
 
         for (int i = 0; i < 10; i++) {
@@ -598,15 +595,15 @@ public class SolaceBinderProvisioningLifecycleIT {
 
         Queue queue = JCSMPFactory.onlyInstance().createQueue(binder.getConsumerQueueName(consumerBinding));
         Topic topic = JCSMPFactory.onlyInstance().createTopic(destination0);
-        logger.info(String.format("Subscribing queue %s to topic %s", queue.getName(), topic.getName()));
+        log.info(String.format("Subscribing queue %s to topic %s", queue.getName(), topic.getName()));
         jcsmpSession.addSubscription(queue, topic, JCSMPSession.WAIT_FOR_CONFIRM);
 
-        logger.info(String.format("Sending message to destination %s", destination0));
+        log.info(String.format("Sending message to destination %s", destination0));
         moduleOutputChannel.send(message);
 
         boolean gotMessage = false;
         for (int i = 0; !gotMessage && i < 100; i++) {
-            gotMessage = moduleInputChannel.poll(message1 -> logger.info(String.format("Received message %s", message1)));
+            gotMessage = moduleInputChannel.poll(message1 -> log.info(String.format("Received message %s", message1)));
         }
         assertThat(gotMessage).isTrue();
 
@@ -789,13 +786,13 @@ public class SolaceBinderProvisioningLifecycleIT {
                 barrier.await();
                 Thread.sleep(stallIntervalInMillis);
                 timestamp = Instant.now();
-                logger.info("Received message {} (size: {}) (timestamp: {})",
+                log.info("Received message {} (size: {}) (timestamp: {})",
                         StaticMessageHeaderAccessor.getId(message1), payloads.size(), timestamp);
             } catch (InterruptedException e) {
-                logger.error("Interrupt received", e);
+                log.error("Interrupt received", e);
                 return;
             } catch (BrokenBarrierException e) {
-                logger.error("Unexpected barrier error", e);
+                log.error("Unexpected barrier error", e);
                 return;
             }
 
@@ -905,7 +902,7 @@ public class SolaceBinderProvisioningLifecycleIT {
                 @SuppressWarnings("unchecked")
                 List<byte[]> payloads = consumerProperties.isBatchMode() ? (List<byte[]>) message1.getPayload() :
                         Collections.singletonList((byte[]) message1.getPayload());
-                logger.info("Received message {} (size: {})", StaticMessageHeaderAccessor.getId(message1),
+                log.info("Received message {} (size: {})", StaticMessageHeaderAccessor.getId(message1),
                         payloads.size());
                 for (byte[] payloadBytes : payloads) {
                     String payload = new String(payloadBytes);
@@ -1095,7 +1092,7 @@ public class SolaceBinderProvisioningLifecycleIT {
         Queue queue = JCSMPFactory.onlyInstance().createQueue(queue0);
         try {
             long maxBindCount = 1;
-            logger.info(String.format("Pre-provisioning queue %s with maxBindCount=%s", queue0, maxBindCount));
+            log.info(String.format("Pre-provisioning queue %s with maxBindCount=%s", queue0, maxBindCount));
             jcsmpSession.provision(queue, new EndpointProperties(), JCSMPSession.WAIT_FOR_CONFIRM);
             sempV2Api.config()
                     .updateMsgVpnQueue(new ConfigMsgVpnQueue().maxBindCount(maxBindCount), vpnName, queue0, null, null);
@@ -1171,7 +1168,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             final CountDownLatch latch0 = new CountDownLatch(1);
             final CountDownLatch latch1 = new CountDownLatch(1);
             moduleInputChannel.subscribe(msg -> {
-                logger.info(String.format("Received message %s", msg));
+                log.info(String.format("Received message %s", msg));
                 Destination destination = msg.getHeaders().get(SolaceHeaders.DESTINATION, Destination.class);
                 assertThat(destination).isNotNull();
                 if (topic0.equals(destination.getName())) {
@@ -1237,7 +1234,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             flowReceiver = jcsmpSession.createFlow(new XMLMessageListener() {
                 @Override
                 public void onReceive(BytesXMLMessage bytesXMLMessage) {
-                    logger.info(String.format("Received message %s", bytesXMLMessage));
+                    log.info(String.format("Received message %s", bytesXMLMessage));
                     Destination destination = bytesXMLMessage.getDestination();
                     assertThat(destination).isNotNull();
                     if (topic0.equals(destination.getName())) {
@@ -1311,7 +1308,7 @@ public class SolaceBinderProvisioningLifecycleIT {
                 boolean gotMessage = false;
                 for (int j = 0; !gotMessage && j < 100; j++) {
                     gotMessage = moduleInputChannel.poll(msg -> {
-                        logger.info(String.format("Received message %s", msg));
+                        log.info(String.format("Received message %s", msg));
                         Destination destination = msg.getHeaders().get(SolaceHeaders.DESTINATION, Destination.class);
                         assertThat(destination).isNotNull();
                         if (topic0.equals(destination.getName())) {
@@ -1372,7 +1369,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             final CountDownLatch latch0 = new CountDownLatch(1);
             final CountDownLatch latch1 = new CountDownLatch(1);
             moduleInputChannel.subscribe(msg -> {
-                logger.info(String.format("Received message %s", msg));
+                log.info(String.format("Received message %s", msg));
                 Destination destination = msg.getHeaders().get(SolaceHeaders.DESTINATION, Destination.class);
                 assertThat(destination).isNotNull();
                 if (topic0.equals(destination.getName())) {
@@ -1503,7 +1500,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             throw new RuntimeException("Throwing expected exception!");
         });
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel.send(message);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -1568,7 +1565,7 @@ public class SolaceBinderProvisioningLifecycleIT {
         String errorQueueName = binder.getConsumerErrorQueueName(consumerBinding);
         assertThat(errorQueueName).contains('/' + group0 + '/');
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel.send(message);
 
         boolean gotMessage = false;
@@ -1640,7 +1637,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             throw new RuntimeException("Throwing expected exception!");
         });
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel.send(message);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -1710,7 +1707,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             throw new RuntimeException("Throwing expected exception!");
         });
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel.send(message);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -1776,7 +1773,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             throw new RuntimeException("Throwing expected exception!");
         });
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel.send(message);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -1848,7 +1845,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             throw new RuntimeException("Throwing expected exception!");
         });
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel.send(message);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -1918,7 +1915,7 @@ public class SolaceBinderProvisioningLifecycleIT {
             throw new RuntimeException("Throwing expected exception!");
         });
 
-        logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+        log.info(String.format("Sending message to destination %s: %s", destination0, message));
         moduleOutputChannel.send(message);
 
         assertThat(latch.await(1, TimeUnit.MINUTES)).isTrue();
@@ -2070,12 +2067,12 @@ public class SolaceBinderProvisioningLifecycleIT {
             assertThatThrownBy(consumerBinding::start).getRootCause().hasMessageContaining("Unknown Queue");
 
             Queue queue = JCSMPFactory.onlyInstance().createQueue(binder.getConsumerQueueName(consumerBinding));
-            logger.info("Trying to connect consumer to a newly provisioned queue {}", queue.getName());
+            log.info("Trying to connect consumer to a newly provisioned queue {}", queue.getName());
             Binding<MessageChannel> producerBinding = null;
             try {
                 EndpointProperties endpointProperties = new EndpointProperties();
                 endpointProperties.setPermission(EndpointProperties.PERMISSION_MODIFY_TOPIC);
-                logger.info("Provisioning queue {} with Permission {}", queue.getName(),
+                log.info("Provisioning queue {} with Permission {}", queue.getName(),
                         endpointProperties.getPermission());
                 jcsmpSession.provision(queue, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
 
@@ -2098,7 +2095,7 @@ public class SolaceBinderProvisioningLifecycleIT {
                         () -> moduleOutputChannel.send(MessageBuilder.withPayload("foo".getBytes())
                                 .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
                                 .build()),
-                        msg -> logger.info(String.format("Received message %s", msg)));
+                        msg -> log.info(String.format("Received message %s", msg)));
             } finally {
                 if (producerBinding != null) producerBinding.unbind();
                 consumerBinding.unbind();
@@ -2184,7 +2181,7 @@ public class SolaceBinderProvisioningLifecycleIT {
         Queue errorQueue = JCSMPFactory.onlyInstance().createQueue(binder.getConsumerErrorQueueName(consumerBinding));
         Binding<MessageChannel> producerBinding = null;
         try {
-            logger.info("Provisioning error queue {}", errorQueue.getName());
+            log.info("Provisioning error queue {}", errorQueue.getName());
             jcsmpSession.provision(errorQueue, new EndpointProperties(), JCSMPSession.WAIT_FOR_CONFIRM);
 
             DirectChannel moduleOutputChannel = context.createBindableChannel("output", new BindingProperties());

@@ -11,52 +11,52 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SolaceHealthIndicatorTest {
 
-	private SolaceHealthIndicator solaceHealthIndicator;
+    private SolaceHealthIndicator solaceHealthIndicator;
 
-	@BeforeEach
-	void setUp() {
-		this.solaceHealthIndicator = new SolaceHealthIndicator();
-	}
+    @BeforeEach
+    void setUp() {
+        this.solaceHealthIndicator = new SolaceHealthIndicator();
+    }
 
-	@Test
-	void healthUp() {
-		this.solaceHealthIndicator.healthUp();
-		assertEquals(this.solaceHealthIndicator.health(), Health.up().build());
-	}
+    @Test
+    void healthUp() {
+        this.solaceHealthIndicator.healthUp();
+        assertEquals(this.solaceHealthIndicator.health(), Health.up().build());
+    }
 
-	@Test
-	void healthReconnecting() {
-		this.solaceHealthIndicator.healthReconnecting(null);
-		assertEquals(this.solaceHealthIndicator.health(), Health.status("RECONNECTING").build());
-	}
+    @Test
+    void healthReconnecting() {
+        this.solaceHealthIndicator.healthReconnecting(null);
+        assertEquals(this.solaceHealthIndicator.health(), Health.status("RECONNECTING").build());
+    }
 
-	@Test
-	void healthDown() {
-		this.solaceHealthIndicator.healthDown(null);
-		assertEquals(this.solaceHealthIndicator.health(), Health.down().build());
-	}
+    @Test
+    void healthDown() {
+        this.solaceHealthIndicator.healthDown(null);
+        assertEquals(this.solaceHealthIndicator.health(), Health.down().build());
+    }
 
-	@Test
-	void addFlowEventDetails() {
-		// as SessionEventArgs constructor has package level access modifier, we have to test with FlowEventArgs only
-		FlowEventArgs flowEventArgs = new FlowEventArgs(FlowEvent.FLOW_DOWN, "String_infoStr",
-				new Exception("Test Exception"), 500);
-		Health health = this.solaceHealthIndicator.addEventDetails(Health.down(),flowEventArgs).build();
+    @Test
+    void addFlowEventDetails() {
+        // as SessionEventArgs constructor has package level access modifier, we have to test with FlowEventArgs only
+        FlowEventArgs flowEventArgs = new FlowEventArgs(FlowEvent.FLOW_DOWN, "String_infoStr",
+                new Exception("Test Exception"), 500);
+        Health health = this.solaceHealthIndicator.addEventDetails(Health.down(), flowEventArgs).build();
 
-		assertEquals(health.getStatus(), Status.DOWN);
-		assertEquals(health.getDetails().get("error"), "java.lang.Exception: Test Exception");
-		assertEquals(health.getDetails().get("responseCode"), 500);
-	}
+        assertEquals(health.getStatus(), Status.DOWN);
+        assertEquals(health.getDetails().get("error"), "java.lang.Exception: Test Exception");
+        assertEquals(health.getDetails().get("responseCode"), 500);
+    }
 
-	@Test
-	void getHealth() {
-		this.solaceHealthIndicator.setHealth(Health.up().build());
-		assertEquals(this.solaceHealthIndicator.health(), Health.up().build());
-	}
+    @Test
+    void getHealth() {
+        this.solaceHealthIndicator.setHealth(Health.up().build());
+        assertEquals(this.solaceHealthIndicator.health(), Health.up().build());
+    }
 
-	@Test
-	void setHealth() {
-		this.solaceHealthIndicator.setHealth(Health.down().build());
-		assertEquals(this.solaceHealthIndicator.health(), Health.down().build());
-	}
+    @Test
+    void setHealth() {
+        this.solaceHealthIndicator.setHealth(Health.down().build());
+        assertEquals(this.solaceHealthIndicator.health(), Health.down().build());
+    }
 }

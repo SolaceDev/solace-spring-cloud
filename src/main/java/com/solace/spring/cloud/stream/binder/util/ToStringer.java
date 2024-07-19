@@ -11,11 +11,12 @@ public final class ToStringer {
 
     /**
      * provides a simplified toString for {@link EndpointProperties}
+     *
      * @param ep to tbe turned to String
      * @return string representation of the object
      */
     public static String toString(EndpointProperties ep) {
-        if (ep== null)
+        if (ep == null)
             return "EndpointProperties{NULL}";
         return "EndpointProperties{" +
                 "mAccessType=" + ep.getAccessType() +
@@ -26,14 +27,15 @@ public final class ToStringer {
 
     /**
      * provides a simplified toString for {@link Endpoint}
+     *
      * @param e to tbe turned to String
      * @return string representation of the object
      */
     public static String toString(Endpoint e) {
-        if (e==null)
+        if (e == null)
             return "Endpoint{NULL}";
         return "Endpoint{" +
-                " class:" + e.getClass()+
+                " class:" + e.getClass() +
                 " _name='" + e.getName() + '\'' +
                 ", _durable=" + e.isDurable() +
                 '}';
@@ -41,6 +43,7 @@ public final class ToStringer {
 
     /**
      * provides a simplified toString for {@link ConsumerFlowProperties}
+     *
      * @param cfp to tbe turned to String
      * @return string representation of the object
      */

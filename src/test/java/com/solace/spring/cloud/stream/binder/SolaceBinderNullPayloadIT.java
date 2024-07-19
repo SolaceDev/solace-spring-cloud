@@ -9,18 +9,8 @@ import com.solace.spring.cloud.stream.binder.test.spring.SpringCloudStreamContex
 import com.solace.spring.cloud.stream.binder.test.util.SimpleJCSMPEventHandler;
 import com.solace.spring.cloud.stream.binder.test.util.SolaceTestBinder;
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
-import com.solacesystems.jcsmp.BytesMessage;
-import com.solacesystems.jcsmp.JCSMPFactory;
-import com.solacesystems.jcsmp.JCSMPSession;
-import com.solacesystems.jcsmp.MapMessage;
-import com.solacesystems.jcsmp.Message;
-import com.solacesystems.jcsmp.SDTMap;
-import com.solacesystems.jcsmp.SDTStream;
-import com.solacesystems.jcsmp.StreamMessage;
-import com.solacesystems.jcsmp.TextMessage;
-import com.solacesystems.jcsmp.XMLContentMessage;
-import com.solacesystems.jcsmp.XMLMessage;
-import com.solacesystems.jcsmp.XMLMessageProducer;
+import com.solacesystems.jcsmp.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.AbstractListAssert;
 import org.assertj.core.api.ObjectAssert;
@@ -29,8 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junitpioneer.jupiter.cartesian.CartesianArgumentsSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.junitpioneer.jupiter.cartesian.CartesianTest.Values;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.cloud.stream.binder.Binding;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
@@ -50,12 +38,12 @@ import static com.solace.spring.cloud.stream.binder.test.util.SolaceSpringCloudS
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+@Slf4j
 @SpringJUnitConfig(classes = SolaceJavaAutoConfiguration.class,
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(PubSubPlusExtension.class)
 @ExtendWith(SpringCloudStreamExtension.class)
 public class SolaceBinderNullPayloadIT {
-    private static final Logger logger = LoggerFactory.getLogger(SolaceBinderNullPayloadIT.class);
 
     @CartesianTest(name = "[{index}] messageType={0} batchMode={1}")
     public void testNullPayload(
@@ -77,7 +65,7 @@ public class SolaceBinderNullPayloadIT {
 
         final CountDownLatch latch = new CountDownLatch(1);
         moduleInputChannel.subscribe(msg -> {
-            logger.info("Received message {}", StaticMessageHeaderAccessor.getId(msg));
+            log.info("Received message {}", StaticMessageHeaderAccessor.getId(msg));
 
             softly.assertThat(msg).satisfies(hasNestedHeader(SolaceBinderHeaders.NULL_PAYLOAD, Boolean.class,
                     batchMode, nullPayload -> assertThat(nullPayload).isTrue()));
@@ -146,7 +134,7 @@ public class SolaceBinderNullPayloadIT {
 
         final CountDownLatch latch = new CountDownLatch(1);
         moduleInputChannel.subscribe(msg -> {
-            logger.info("Received message {}", StaticMessageHeaderAccessor.getId(msg));
+            log.info("Received message {}", StaticMessageHeaderAccessor.getId(msg));
 
             if (messageType == BytesMessage.class || messageType == XMLContentMessage.class) {
                 //LIMITATION: BytesMessage doesn't support EMPTY payloads since publishing byte[0] is received as a null payload

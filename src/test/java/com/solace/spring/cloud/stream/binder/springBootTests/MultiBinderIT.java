@@ -1,17 +1,14 @@
 package com.solace.spring.cloud.stream.binder.springBootTests;
 
+import com.solace.spring.cloud.stream.binder.config.JCSMPSessionConfiguration;
 import com.solace.test.integration.testcontainer.PubSubPlusContainer;
-import com.solacesystems.jcsmp.JCSMPException;
-import com.solacesystems.jcsmp.JCSMPFactory;
-import com.solacesystems.jcsmp.JCSMPProperties;
-import com.solacesystems.jcsmp.JCSMPSession;
-import com.solacesystems.jcsmp.JCSMPStreamingPublishCorrelatingEventHandler;
-import com.solacesystems.jcsmp.XMLMessageProducer;
+import com.solacesystems.jcsmp.*;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
@@ -31,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @Isolated
 @SpringBootTest
+@EnableAutoConfiguration(exclude = JCSMPSessionConfiguration.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("multibinder")
 @DirtiesContext //Ensures all listeners are stopped
@@ -40,6 +38,7 @@ public class MultiBinderIT {
     private static final XMLMessageProducer producer;
     private static final String QUEUE_NAME_PREFIX = "scst/wk/myConsumerGroup/plain/";
     private static final String QUEUE_NAME_1 = "MultiBinder/Queue/1";
+
     static {
         container.start();
         JCSMPProperties props = new JCSMPProperties(container.getHost(),
@@ -50,10 +49,12 @@ public class MultiBinderIT {
             jcsmpSession.connect();
             producer = jcsmpSession.getMessageProducer(new JCSMPStreamingPublishCorrelatingEventHandler() {
                 @Override
-                public void responseReceivedEx(Object o) { }
+                public void responseReceivedEx(Object o) {
+                }
 
                 @Override
-                public void handleErrorEx(Object o, JCSMPException e, long l) { }
+                public void handleErrorEx(Object o, JCSMPException e, long l) {
+                }
             });
         } catch (Exception e) {
             throw new RuntimeException("Failed setup", e);

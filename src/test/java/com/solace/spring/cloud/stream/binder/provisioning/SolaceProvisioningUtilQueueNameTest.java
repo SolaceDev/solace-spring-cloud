@@ -2,13 +2,12 @@ package com.solace.spring.cloud.stream.binder.provisioning;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.provisioning.ProvisioningException;
@@ -21,8 +20,8 @@ import static org.hamcrest.Matchers.matchesRegex;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+@Slf4j
 public class SolaceProvisioningUtilQueueNameTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SolaceProvisioningUtilQueueNameTest.class);
 
     public static Stream<Arguments> arguments() {
         List<List<Object>> testCases = new ArrayList<>();
@@ -63,7 +62,7 @@ public class SolaceProvisioningUtilQueueNameTest {
 
         String actual = SolaceProvisioningUtil.getQueueNames(destination, groupName, new ExtendedConsumerProperties<>(consumerProperties), isAnonymous)
                 .getConsumerGroupQueueName();
-        LOGGER.info("Testing Queue Name: {}", actual);
+        log.info("Testing Queue Name: {}", actual);
 
         final int prefixLevelIdx = 0;
         final int anonymousLevelIdx = prefixLevelIdx + 1;
@@ -103,7 +102,7 @@ public class SolaceProvisioningUtilQueueNameTest {
 
         String actual = SolaceProvisioningUtil.getQueueNames(destination, groupName, new ExtendedConsumerProperties<>(consumerProperties), isAnonymous)
                 .getErrorQueueName();
-        LOGGER.info("Testing Error Queue Name: {}", actual);
+        log.info("Testing Error Queue Name: {}", actual);
 
         final int prefixLevelIdx = 0;
         final int errorLevelIdx = prefixLevelIdx + 1;

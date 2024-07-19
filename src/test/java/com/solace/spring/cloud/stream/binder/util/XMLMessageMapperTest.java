@@ -10,6 +10,7 @@ import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties
 import com.solace.spring.cloud.stream.binder.test.util.SerializableFoo;
 import com.solace.spring.cloud.stream.binder.test.util.ThrowingFunction;
 import com.solacesystems.jcsmp.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.logging.Log;
@@ -64,6 +65,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Slf4j
 @ExtendWith(MockitoExtension.class)
 public class XMLMessageMapperTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -248,16 +250,14 @@ public class XMLMessageMapperTest {
                      SolaceHeaders.HTTP_CONTENT_ENCODING,
                      SolaceHeaders.SENDER_ID,
                      SolaceBinderHeaders.TARGET_DESTINATION_TYPE -> RandomStringUtils.randomAlphanumeric(10);
-                case SolaceHeaders.DMQ_ELIGIBLE ->
-                        !(Boolean) ((SolaceHeaderMeta<?>) header.getValue()).getDefaultValueOverride();
+                case SolaceHeaders.DMQ_ELIGIBLE -> !(Boolean) ((SolaceHeaderMeta<?>) header.getValue()).getDefaultValueOverride();
                 case SolaceHeaders.IS_REPLY -> true; //The opposite of what a Solace message defaults to
                 case SolaceHeaders.EXPIRATION,
                      SolaceHeaders.SENDER_TIMESTAMP,
                      SolaceHeaders.SEQUENCE_NUMBER,
                      SolaceHeaders.TIME_TO_LIVE -> (long) ThreadLocalRandom.current().nextInt(10000);
                 case SolaceHeaders.PRIORITY -> ThreadLocalRandom.current().nextInt(255);
-                case SolaceHeaders.REPLY_TO ->
-                        JCSMPFactory.onlyInstance().createQueue(RandomStringUtils.randomAlphanumeric(10));
+                case SolaceHeaders.REPLY_TO -> JCSMPFactory.onlyInstance().createQueue(RandomStringUtils.randomAlphanumeric(10));
                 case SolaceHeaders.USER_DATA -> RandomStringUtils.randomAlphanumeric(10).getBytes();
                 case SolaceBinderHeaders.BATCHED_HEADERS -> List.of(Map.of("foo", "bar"));
                 case SolaceBinderHeaders.CONFIRM_CORRELATION -> new CorrelationData();
@@ -280,16 +280,13 @@ public class XMLMessageMapperTest {
         for (Map.Entry<String, ? extends HeaderMeta<?>> header : writeableHeaders) {
             Object expectedValue = testSpringMessage.getHeaders().get(header.getKey());
             switch (header.getKey()) {
-                case SolaceHeaders.APPLICATION_MESSAGE_ID ->
-                        assertEquals(expectedValue, xmlMessage.getApplicationMessageId());
-                case SolaceHeaders.APPLICATION_MESSAGE_TYPE ->
-                        assertEquals(expectedValue, xmlMessage.getApplicationMessageType());
+                case SolaceHeaders.APPLICATION_MESSAGE_ID -> assertEquals(expectedValue, xmlMessage.getApplicationMessageId());
+                case SolaceHeaders.APPLICATION_MESSAGE_TYPE -> assertEquals(expectedValue, xmlMessage.getApplicationMessageType());
                 case SolaceHeaders.CORRELATION_ID -> assertEquals(expectedValue, xmlMessage.getCorrelationId());
                 case SolaceHeaders.DMQ_ELIGIBLE -> assertEquals(expectedValue, xmlMessage.isDMQEligible());
                 case SolaceHeaders.EXPIRATION -> assertEquals(expectedValue, xmlMessage.getExpiration());
                 case SolaceHeaders.IS_REPLY -> assertEquals(expectedValue, xmlMessage.isReplyMessage());
-                case SolaceHeaders.HTTP_CONTENT_ENCODING ->
-                        assertEquals(expectedValue, xmlMessage.getHTTPContentEncoding());
+                case SolaceHeaders.HTTP_CONTENT_ENCODING -> assertEquals(expectedValue, xmlMessage.getHTTPContentEncoding());
                 case SolaceHeaders.PRIORITY -> assertEquals(expectedValue, xmlMessage.getPriority());
                 case SolaceHeaders.REPLY_TO -> assertEquals(expectedValue, xmlMessage.getReplyTo());
                 case SolaceHeaders.SENDER_ID -> assertEquals(expectedValue, xmlMessage.getSenderId());
@@ -600,16 +597,14 @@ public class XMLMessageMapperTest {
                      SolaceHeaders.HTTP_CONTENT_ENCODING,
                      SolaceHeaders.SENDER_ID,
                      SolaceBinderHeaders.PARTITION_KEY -> RandomStringUtils.randomAlphanumeric(10);
-                case SolaceHeaders.DMQ_ELIGIBLE ->
-                        !(Boolean) ((SolaceHeaderMeta<?>) header.getValue()).getDefaultValueOverride();
+                case SolaceHeaders.DMQ_ELIGIBLE -> !(Boolean) ((SolaceHeaderMeta<?>) header.getValue()).getDefaultValueOverride();
                 case SolaceHeaders.IS_REPLY -> true; //The opposite of what a Solace message defaults to
                 case SolaceHeaders.EXPIRATION,
                      SolaceHeaders.SENDER_TIMESTAMP,
                      SolaceHeaders.SEQUENCE_NUMBER,
                      SolaceHeaders.TIME_TO_LIVE -> ThreadLocalRandom.current().nextLong(10000);
                 case SolaceHeaders.PRIORITY -> ThreadLocalRandom.current().nextInt(255);
-                case SolaceHeaders.REPLY_TO ->
-                        JCSMPFactory.onlyInstance().createQueue(RandomStringUtils.randomAlphanumeric(10));
+                case SolaceHeaders.REPLY_TO -> JCSMPFactory.onlyInstance().createQueue(RandomStringUtils.randomAlphanumeric(10));
                 case SolaceHeaders.USER_DATA -> RandomStringUtils.randomAlphanumeric(10).getBytes();
                 default -> {
                     fail(String.format("no test for header %s", header.getKey()));
@@ -628,15 +623,12 @@ public class XMLMessageMapperTest {
         for (Map.Entry<String, ? extends HeaderMeta<?>> header : writeableHeaders) {
             Object expectedValue = testSpringMessage.getHeaders().get(header.getKey());
             switch (header.getKey()) {
-                case SolaceHeaders.APPLICATION_MESSAGE_ID ->
-                        assertEquals(expectedValue, xmlMessage.getApplicationMessageId());
-                case SolaceHeaders.APPLICATION_MESSAGE_TYPE ->
-                        assertEquals(expectedValue, xmlMessage.getApplicationMessageType());
+                case SolaceHeaders.APPLICATION_MESSAGE_ID -> assertEquals(expectedValue, xmlMessage.getApplicationMessageId());
+                case SolaceHeaders.APPLICATION_MESSAGE_TYPE -> assertEquals(expectedValue, xmlMessage.getApplicationMessageType());
                 case SolaceHeaders.CORRELATION_ID -> assertEquals(expectedValue, xmlMessage.getCorrelationId());
                 case SolaceHeaders.DMQ_ELIGIBLE -> assertEquals(expectedValue, xmlMessage.isDMQEligible());
                 case SolaceHeaders.EXPIRATION -> assertEquals(expectedValue, xmlMessage.getExpiration());
-                case SolaceHeaders.HTTP_CONTENT_ENCODING ->
-                        assertEquals(expectedValue, xmlMessage.getHTTPContentEncoding());
+                case SolaceHeaders.HTTP_CONTENT_ENCODING -> assertEquals(expectedValue, xmlMessage.getHTTPContentEncoding());
                 case SolaceHeaders.IS_REPLY -> assertEquals(expectedValue, xmlMessage.isReplyMessage());
                 case SolaceHeaders.PRIORITY -> assertEquals(expectedValue, xmlMessage.getPriority());
                 case SolaceHeaders.REPLY_TO -> assertEquals(expectedValue, xmlMessage.getReplyTo());
@@ -1606,12 +1598,12 @@ public class XMLMessageMapperTest {
         XMLMessage xmlMessage;
         int i = 0;
         do {
-            logger.info(String.format("Iteration %s - Message<?> to XMLMessage:\n%s", i, springMessage));
+            log.info(String.format("Iteration %s - Message<?> to XMLMessage:\n%s", i, springMessage));
             xmlMessage = xmlMessageMapper.map(springMessage, null, false, DeliveryMode.PERSISTENT);
             validateXMLProperties(xmlMessage, expectedSpringMessage.getPayload(), expectedSpringMessage.getHeaders(),
                     springHeaders);
 
-            logger.info(String.format("Iteration %s - XMLMessage to Message<?>:\n%s", i, xmlMessage));
+            log.info(String.format("Iteration %s - XMLMessage to Message<?>:\n%s", i, xmlMessage));
             AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
             springMessage = xmlMessageMapper.map(xmlMessage, acknowledgmentCallback, consumerProperties);
             validateSpringHeaders(springMessage.getHeaders(), expectedXmlMessage);
@@ -1688,10 +1680,8 @@ public class XMLMessageMapperTest {
                         assertEquals(headerValue, value);
                     } else if (!serializedHeaders.contains(headerKey)) {
                         switch (headerKey) {
-                            case SolaceBinderHeaders.PARTITION_KEY ->
-                                    headerKey = XMLMessage.MessageUserPropertyConstants.QUEUE_PARTITION_KEY;
-                            case XMLMessage.MessageUserPropertyConstants.QUEUE_PARTITION_KEY ->
-                                    headerValue = expectedHeaders.getOrDefault(SolaceBinderHeaders.PARTITION_KEY, headerValue);
+                            case SolaceBinderHeaders.PARTITION_KEY -> headerKey = XMLMessage.MessageUserPropertyConstants.QUEUE_PARTITION_KEY;
+                            case XMLMessage.MessageUserPropertyConstants.QUEUE_PARTITION_KEY -> headerValue = expectedHeaders.getOrDefault(SolaceBinderHeaders.PARTITION_KEY, headerValue);
                             case SolaceBinderHeaders.BATCHED_HEADERS,
                                  SolaceBinderHeaders.CONFIRM_CORRELATION,
                                  SolaceBinderHeaders.TARGET_DESTINATION_TYPE -> {

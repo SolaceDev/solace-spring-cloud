@@ -3,8 +3,6 @@ package com.solace.spring.cloud.stream.binder.util;
 import com.solacesystems.jcsmp.SessionEvent;
 import com.solacesystems.jcsmp.SessionEventArgs;
 import com.solacesystems.jcsmp.SessionEventHandler;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;

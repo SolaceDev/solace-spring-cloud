@@ -10,13 +10,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConditionalOnClass(MeterRegistry.class)
 public class SolaceMeterConfiguration {
-	@Bean
-	public SolaceMessageMeterBinder solaceMessageMeterBinder() {
-		return new SolaceMessageMeterBinder();
-	}
+    @Bean
+    public SolaceMessageMeterBinder solaceMessageMeterBinder() {
+        return new SolaceMessageMeterBinder();
+    }
 
-	@Bean
-	public SolaceMeterAccessor solaceMeterAccessor(SolaceMessageMeterBinder solaceMessageMeterBinder) {
-		return new SolaceMeterAccessor(solaceMessageMeterBinder);
-	}
+    @Bean
+    public SolaceMeterAccessor solaceMeterAccessor(SolaceMessageMeterBinder solaceMessageMeterBinder) {
+        return new SolaceMeterAccessor(solaceMessageMeterBinder);
+    }
 }

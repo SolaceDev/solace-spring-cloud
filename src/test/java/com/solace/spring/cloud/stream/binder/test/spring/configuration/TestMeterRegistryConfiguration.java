@@ -15,30 +15,30 @@ import java.util.List;
 
 @TestConfiguration
 public class TestMeterRegistryConfiguration {
-	@Bean
-	@Primary
-	public CompositeMeterRegistry compositeMeterRegistry(List<MeterRegistry> meterRegistries) {
-		CompositeMeterRegistry compositeMeterRegistry = new CompositeMeterRegistry();
-		meterRegistries.forEach(compositeMeterRegistry::add);
-		return compositeMeterRegistry;
-	}
+    @Bean
+    @Primary
+    public CompositeMeterRegistry compositeMeterRegistry(List<MeterRegistry> meterRegistries) {
+        CompositeMeterRegistry compositeMeterRegistry = new CompositeMeterRegistry();
+        meterRegistries.forEach(compositeMeterRegistry::add);
+        return compositeMeterRegistry;
+    }
 
-	@Bean
-	public SimpleMeterRegistry simpleMeterRegistry() {
-		return new SimpleMeterRegistry();
-	}
+    @Bean
+    public SimpleMeterRegistry simpleMeterRegistry() {
+        return new SimpleMeterRegistry();
+    }
 
-	@Bean
-	public LoggingMeterRegistry loggingMeterRegistry() {
-		return new LoggingMeterRegistry(new LoggingRegistryConfig() {
-			@Override
-			public String get(String key) {
-				if (key.equals(prefix() + ".step")) {
-					return String.valueOf(Duration.ofMillis(500));
-				} else {
-					return null;
-				}
-			}
-		}, Clock.SYSTEM);
-	}
+    @Bean
+    public LoggingMeterRegistry loggingMeterRegistry() {
+        return new LoggingMeterRegistry(new LoggingRegistryConfig() {
+            @Override
+            public String get(String key) {
+                if (key.equals(prefix() + ".step")) {
+                    return String.valueOf(Duration.ofMillis(500));
+                } else {
+                    return null;
+                }
+            }
+        }, Clock.SYSTEM);
+    }
 }

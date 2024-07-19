@@ -4,20 +4,19 @@ import com.solace.spring.cloud.stream.binder.health.base.SolaceHealthIndicator;
 import com.solace.spring.cloud.stream.binder.properties.SolaceSessionHealthProperties;
 import com.solacesystems.jcsmp.SessionEventArgs;
 import lombok.NoArgsConstructor;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Slf4j
 @NoArgsConstructor
 public class SessionHealthIndicator extends SolaceHealthIndicator {
     private final AtomicInteger reconnectCount = new AtomicInteger(0);
     private SolaceSessionHealthProperties solaceHealthSessionProperties;
     private final ReentrantLock writeLock = new ReentrantLock();
-    private static final Log logger = LogFactory.getLog(SessionHealthIndicator.class);
 
     public SessionHealthIndicator(SolaceSessionHealthProperties solaceHealthSessionProperties) {
         this.solaceHealthSessionProperties = solaceHealthSessionProperties;
@@ -26,8 +25,8 @@ public class SessionHealthIndicator extends SolaceHealthIndicator {
     public void up() {
         writeLock.lock();
         try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Reset reconnect count");
+            if (log.isTraceEnabled()) {
+                log.trace("Reset reconnect count");
             }
             this.reconnectCount.set(0);
             super.healthUp();
@@ -44,8 +43,8 @@ public class SessionHealthIndicator extends SolaceHealthIndicator {
                     .filter(maxReconnectAttempts -> maxReconnectAttempts > 0)
                     .filter(maxReconnectAttempts -> reconnectAttempt > maxReconnectAttempts)
                     .isPresent()) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug(String.format("Solace connection reconnect attempt %s > %s, changing state to down",
+                if (log.isDebugEnabled()) {
+                    log.debug(String.format("Solace connection reconnect attempt %s > %s, changing state to down",
                             reconnectAttempt, solaceHealthSessionProperties.getReconnectAttemptsUntilDown()));
                 }
                 this.down(eventArgs, false);
@@ -66,8 +65,8 @@ public class SessionHealthIndicator extends SolaceHealthIndicator {
         writeLock.lock();
         try {
             if (resetReconnectCount) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Reset reconnect count");
+                if (log.isTraceEnabled()) {
+                    log.trace("Reset reconnect count");
                 }
                 this.reconnectCount.set(0);
             }

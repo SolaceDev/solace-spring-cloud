@@ -7,51 +7,51 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MessageContainer {
-	private final UUID id = UUID.randomUUID();
-	private final BytesXMLMessage message;
-	private final UUID flowReceiverReferenceId;
-	private final AtomicBoolean staleFlag;
-	private boolean acknowledged;
+    private final UUID id = UUID.randomUUID();
+    private final BytesXMLMessage message;
+    private final UUID flowReceiverReferenceId;
+    private final AtomicBoolean staleFlag;
+    private boolean acknowledged;
 
-	MessageContainer(BytesXMLMessage message, UUID flowReceiverReferenceId, AtomicBoolean staleFlag) {
-		this.message = message;
-		this.flowReceiverReferenceId = flowReceiverReferenceId;
-		this.staleFlag = staleFlag;
-	}
+    MessageContainer(BytesXMLMessage message, UUID flowReceiverReferenceId, AtomicBoolean staleFlag) {
+        this.message = message;
+        this.flowReceiverReferenceId = flowReceiverReferenceId;
+        this.staleFlag = staleFlag;
+    }
 
-	public UUID getId() {
-		return id;
-	}
+    public UUID getId() {
+        return id;
+    }
 
-	public BytesXMLMessage getMessage() {
-		return message;
-	}
+    public BytesXMLMessage getMessage() {
+        return message;
+    }
 
-	public UUID getFlowReceiverReferenceId() {
-		return flowReceiverReferenceId;
-	}
+    public UUID getFlowReceiverReferenceId() {
+        return flowReceiverReferenceId;
+    }
 
-	public boolean isAcknowledged() {
-		return acknowledged;
-	}
+    public boolean isAcknowledged() {
+        return acknowledged;
+    }
 
-	public boolean isStale() {
-		return staleFlag.get();
-	}
+    public boolean isStale() {
+        return staleFlag.get();
+    }
 
 
-	void setAcknowledged(boolean acknowledged) {
-		this.acknowledged = acknowledged;
-	}
+    void setAcknowledged(boolean acknowledged) {
+        this.acknowledged = acknowledged;
+    }
 
-	@Override
-	public String toString() {
-		return new StringJoiner(", ", MessageContainer.class.getSimpleName() + "[", "]")
-				.add("id=" + id)
-				.add("message=" + message)
-				.add("flowReceiverReferenceId=" + flowReceiverReferenceId)
-				.add("staleFlag=" + staleFlag)
-				.add("acknowledged=" + acknowledged)
-				.toString();
-	}
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", MessageContainer.class.getSimpleName() + "[", "]")
+                .add("id=" + id)
+                .add("message=" + message)
+                .add("flowReceiverReferenceId=" + flowReceiverReferenceId)
+                .add("staleFlag=" + staleFlag)
+                .add("acknowledged=" + acknowledged)
+                .toString();
+    }
 }

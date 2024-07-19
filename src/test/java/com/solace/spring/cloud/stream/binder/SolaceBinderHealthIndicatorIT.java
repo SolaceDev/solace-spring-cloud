@@ -6,12 +6,10 @@ import com.solace.spring.cloud.stream.binder.test.junit.extension.SpringCloudStr
 import com.solace.spring.cloud.stream.binder.test.spring.SpringCloudStreamContext;
 import com.solace.spring.cloud.stream.binder.test.util.SolaceTestBinder;
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
@@ -31,15 +29,15 @@ import org.springframework.web.context.WebApplicationContext;
 import static org.junit.Assert.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-@SpringJUnitWebConfig(classes = { SolaceJavaAutoConfiguration.class },
+@Slf4j
+@SpringJUnitWebConfig(classes = {SolaceJavaAutoConfiguration.class},
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(PubSubPlusExtension.class)
 @ExtendWith(SpringCloudStreamExtension.class)
-@TestPropertySource(properties = {  "management.endpoint.health.show-details=always", "management.health.binders.enabled=true" })
+@TestPropertySource(properties = {"management.endpoint.health.show-details=always", "management.health.binders.enabled=true"})
 @EnableAutoConfiguration
 public class SolaceBinderHealthIndicatorIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(SolaceBinderHealthIndicatorIT.class);
 
     @Autowired
     private WebApplicationContext webAppContext;
@@ -57,7 +55,7 @@ public class SolaceBinderHealthIndicatorIT {
         ResultActions result = mockMvc.perform(get("/actuator/health"));
         MvcResult mvcResult = result.andReturn();
         String content = mvcResult.getResponse().getContentAsString();
-        logger.info("Health status: " + content);
+        log.info("Health status: " + content);
 
         SolaceTestBinder binder = context.getBinder();
         DirectChannel moduleInputChannel = context.createBindableChannel("input", new BindingProperties());
@@ -65,7 +63,7 @@ public class SolaceBinderHealthIndicatorIT {
         ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = context.createConsumerProperties();
         Binding<MessageChannel> consumerBinding = binder.bindConsumer("dest", "group", moduleInputChannel, consumerProperties);
 
-        logger.info("Health status with 1 binding: " + mockMvc.perform(get("/actuator/health")).andReturn().getResponse().getContentAsString());
+        log.info("Health status with 1 binding: " + mockMvc.perform(get("/actuator/health")).andReturn().getResponse().getContentAsString());
 
         consumerBinding.unbind();
     }

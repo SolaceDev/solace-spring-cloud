@@ -6,9 +6,8 @@ import com.solace.spring.cloud.stream.binder.provisioning.SolaceConsumerDestinat
 import com.solace.spring.cloud.stream.binder.util.XMLMessageMapper;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.integration.acks.AcknowledgmentCallback;
 import org.springframework.integration.context.OrderlyShutdownCapable;
@@ -23,9 +22,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Slf4j
 @Setter
 public class JCSMPInboundTopicMessageProducer extends MessageProducerSupport implements OrderlyShutdownCapable, Pausable {
-    private static final Log logger = LogFactory.getLog(JCSMPInboundTopicMessageProducer.class);
     private final String id = UUID.randomUUID().toString();
     private final SolaceConsumerDestination consumerDestination;
     private final String group;
@@ -65,7 +64,7 @@ public class JCSMPInboundTopicMessageProducer extends MessageProducerSupport imp
                 }
                 this.sendMessage(message);
             } catch (Exception ex) {
-                logger.error(ex);
+                log.error("onReceive", ex);
             }
         });
     }
@@ -88,7 +87,7 @@ public class JCSMPInboundTopicMessageProducer extends MessageProducerSupport imp
     @Override
     protected void doStart() {
         if (isRunning()) {
-            logger.warn(String.format("Nothing to do. Inbound message channel adapter %s is already running", id));
+            log.warn(String.format("Nothing to do. Inbound message channel adapter %s is already running", id));
             return;
         }
         this.livecycleHooks.start(this);
@@ -113,13 +112,13 @@ public class JCSMPInboundTopicMessageProducer extends MessageProducerSupport imp
 
     @Override
     public void pause() {
-        logger.info(String.format("Pausing inbound adapter %s", id));
+        log.info(String.format("Pausing inbound adapter %s", id));
         paused.set(true);
     }
 
     @Override
     public void resume() {
-        logger.info(String.format("Resuming inbound adapter %s", id));
+        log.info(String.format("Resuming inbound adapter %s", id));
         paused.set(false);
         executorService.execute(() -> {
             synchronized (this.pauseQueue) {

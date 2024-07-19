@@ -20,61 +20,61 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 class RetryableInboundXMLMessageListener extends InboundXMLMessageListener {
-	private final RetryTemplate retryTemplate;
-	private final RecoveryCallback<?> recoveryCallback;
+    private final RetryTemplate retryTemplate;
+    private final RecoveryCallback<?> recoveryCallback;
 
-	RetryableInboundXMLMessageListener(FlowReceiverContainer flowReceiverContainer,
-									   ConsumerDestination consumerDestination,
-									   ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties,
-									   @Nullable BatchCollector batchCollector,
-									   Consumer<Message<?>> messageConsumer,
-									   JCSMPAcknowledgementCallbackFactory ackCallbackFactory,
-									   RetryTemplate retryTemplate,
-									   RecoveryCallback<?> recoveryCallback,
-									   @Nullable SolaceMeterAccessor solaceMeterAccessor,
-									   @Nullable AtomicBoolean remoteStopFlag,
-									   ThreadLocal<AttributeAccessor> attributesHolder) {
-		super(flowReceiverContainer,
-				consumerDestination,
-				consumerProperties,
-				batchCollector,
-				messageConsumer,
-				ackCallbackFactory,
-				solaceMeterAccessor,
-				remoteStopFlag,
-				attributesHolder,
-				false,
-				true);
-		this.retryTemplate = retryTemplate;
-		this.recoveryCallback = recoveryCallback;
-	}
+    RetryableInboundXMLMessageListener(FlowReceiverContainer flowReceiverContainer,
+                                       ConsumerDestination consumerDestination,
+                                       ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties,
+                                       @Nullable BatchCollector batchCollector,
+                                       Consumer<Message<?>> messageConsumer,
+                                       JCSMPAcknowledgementCallbackFactory ackCallbackFactory,
+                                       RetryTemplate retryTemplate,
+                                       RecoveryCallback<?> recoveryCallback,
+                                       @Nullable SolaceMeterAccessor solaceMeterAccessor,
+                                       @Nullable AtomicBoolean remoteStopFlag,
+                                       ThreadLocal<AttributeAccessor> attributesHolder) {
+        super(flowReceiverContainer,
+                consumerDestination,
+                consumerProperties,
+                batchCollector,
+                messageConsumer,
+                ackCallbackFactory,
+                solaceMeterAccessor,
+                remoteStopFlag,
+                attributesHolder,
+                false,
+                true);
+        this.retryTemplate = retryTemplate;
+        this.recoveryCallback = recoveryCallback;
+    }
 
-	@Override
-	void handleMessage(Supplier<Message<?>> messageSupplier, Consumer<Message<?>> sendToConsumerHandler,
-					   AcknowledgmentCallback acknowledgmentCallback, boolean isBatched)
-			throws SolaceAcknowledgmentException {
-		Message<?> message = retryTemplate.execute((context) -> {
-			attributesHolder.set(context);
-			return messageSupplier.get();
-		}, (context) -> {
-			recoveryCallback.recover(context);
-			AckUtils.autoAck(acknowledgmentCallback);
-			return null;
-		});
+    @Override
+    void handleMessage(Supplier<Message<?>> messageSupplier, Consumer<Message<?>> sendToConsumerHandler,
+                       AcknowledgmentCallback acknowledgmentCallback, boolean isBatched)
+            throws SolaceAcknowledgmentException {
+        Message<?> message = retryTemplate.execute((context) -> {
+            attributesHolder.set(context);
+            return messageSupplier.get();
+        }, (context) -> {
+            recoveryCallback.recover(context);
+            AckUtils.autoAck(acknowledgmentCallback);
+            return null;
+        });
 
-		if (message == null) {
-			return;
-		}
+        if (message == null) {
+            return;
+        }
 
-		retryTemplate.execute((context) -> {
-			attributesHolder.set(context);
-			sendToConsumerHandler.accept(message);
-			AckUtils.autoAck(acknowledgmentCallback);
-			return null;
-		}, (context) -> {
-			Object toReturn = recoveryCallback.recover(context);
-			AckUtils.autoAck(acknowledgmentCallback);
-			return toReturn;
-		});
-	}
+        retryTemplate.execute((context) -> {
+            attributesHolder.set(context);
+            sendToConsumerHandler.accept(message);
+            AckUtils.autoAck(acknowledgmentCallback);
+            return null;
+        }, (context) -> {
+            Object toReturn = recoveryCallback.recover(context);
+            AckUtils.autoAck(acknowledgmentCallback);
+            return toReturn;
+        });
+    }
 }

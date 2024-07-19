@@ -21,6 +21,7 @@ import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;
 import com.solace.test.integration.semp.v2.config.model.ConfigMsgVpnQueue;
 import com.solacesystems.jcsmp.JCSMPProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.TestInfo;
@@ -28,8 +29,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.junitpioneer.jupiter.cartesian.CartesianTest.Values;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.NamedContributor;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
@@ -49,6 +48,7 @@ import java.util.stream.StreamSupport;
 import static com.solace.spring.cloud.stream.binder.test.util.RetryableAssertions.retryAssert;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Slf4j
 @SpringJUnitConfig(classes = {
         SolaceHealthIndicatorsConfiguration.class,
         SolaceJavaAutoConfiguration.class
@@ -56,7 +56,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(PubSubPlusExtension.class)
 @ExtendWith(SpringCloudStreamExtension.class)
 public class SolaceBinderHealthIT {
-    private static final Logger logger = LoggerFactory.getLogger(SolaceBinderHealthIT.class);
 
     @CartesianTest(name = "[{index}] channelType={0}, autoStart={1} concurrency={2}")
     public <T> void testConsumerFlowHealthProvisioning(
@@ -95,7 +94,7 @@ public class SolaceBinderHealthIT {
 
         if (!autoStart) {
             assertThat(bindingsHealthContributor.iterator().hasNext()).isFalse();
-            logger.info("Starting binding...");
+            log.info("Starting binding...");
             consumerBinding.start();
         }
 
@@ -103,13 +102,13 @@ public class SolaceBinderHealthIT {
                 .asInstanceOf(InstanceOfAssertFactories.type(BindingsHealthContributor.class))
                 .satisfies(SolaceSpringCloudStreamAssertions.isSingleBindingHealthAvailable(consumerProperties.getBindingName(), concurrency, Status.UP));
 
-        logger.info("Pausing binding...");
+        log.info("Pausing binding...");
         consumerBinding.pause();
         assertThat(bindingsHealthContributor)
                 .asInstanceOf(InstanceOfAssertFactories.type(BindingsHealthContributor.class))
                 .satisfies(SolaceSpringCloudStreamAssertions.isSingleBindingHealthAvailable(consumerProperties.getBindingName(), concurrency, Status.UP));
 
-        logger.info("Stopping binding...");
+        log.info("Stopping binding...");
         consumerBinding.stop();
         assertThat(bindingsHealthContributor)
                 .asInstanceOf(InstanceOfAssertFactories.type(BindingsHealthContributor.class))
@@ -119,13 +118,13 @@ public class SolaceBinderHealthIT {
                 .asInstanceOf(InstanceOfAssertFactories.stream(NamedContributor.class))
                 .isEmpty();
 
-        logger.info("Starting binding...");
+        log.info("Starting binding...");
         consumerBinding.start();
         assertThat(bindingsHealthContributor)
                 .asInstanceOf(InstanceOfAssertFactories.type(BindingsHealthContributor.class))
                 .satisfies(SolaceSpringCloudStreamAssertions.isSingleBindingHealthAvailable(consumerProperties.getBindingName(), concurrency, Status.UP));
 
-        logger.info("Resuming binding...");
+        log.info("Resuming binding...");
         consumerBinding.resume();
         assertThat(bindingsHealthContributor)
                 .asInstanceOf(InstanceOfAssertFactories.type(BindingsHealthContributor.class))
@@ -172,7 +171,7 @@ public class SolaceBinderHealthIT {
 
         String vpnName = (String) context.getJcsmpSession().getProperty(JCSMPProperties.VPN_NAME);
         String queueName = binder.getConsumerQueueName(consumerBinding);
-        logger.info(String.format("Disabling egress for queue %s", queueName));
+        log.info(String.format("Disabling egress for queue %s", queueName));
         switch (healthStatus) {
             case "DOWN" -> sempV2Api.config().deleteMsgVpnQueue(vpnName, queueName);
             case "RECONNECTING" -> sempV2Api.config()
@@ -233,17 +232,17 @@ public class SolaceBinderHealthIT {
                 .satisfies(SolaceSpringCloudStreamAssertions.isSingleBindingHealthAvailable(consumerProperties.getBindingName(), 1, Status.UP));
 
         String flowHealthId = "flow-0";
-        BindingHealthContributor bindingHealthContributor = (BindingHealthContributor) bindingsHealthContributor
+        BindingHealthContributor bindingHealthContributor = bindingsHealthContributor
                 .getContributor(consumerProperties.getBindingName());
         FlowsHealthContributor flowsHealthContributor = bindingHealthContributor.getFlowsHealthContributor();
 
-        logger.info("Injecting Mockito spy into flow health indicator: {}", flowHealthId);
-        FlowHealthIndicator flowHealthIndicator = Mockito.spy((FlowHealthIndicator) (flowsHealthContributor
-                .getContributor(flowHealthId)));
+        log.info("Injecting Mockito spy into flow health indicator: {}", flowHealthId);
+        FlowHealthIndicator flowHealthIndicator = Mockito.spy(flowsHealthContributor
+                .getContributor(flowHealthId));
         flowsHealthContributor.removeFlowContributor(flowHealthId);
         flowsHealthContributor.addFlowContributor(flowHealthId, flowHealthIndicator);
 
-        logger.info("Injecting Mockito spy into flows health indicator for binding: {}", consumerProperties.getBindingName());
+        log.info("Injecting Mockito spy into flows health indicator for binding: {}", consumerProperties.getBindingName());
         flowsHealthContributor = Mockito.spy(flowsHealthContributor);
         bindingsHealthContributor.removeBindingContributor(consumerProperties.getBindingName());
         bindingsHealthContributor.addBindingContributor(consumerProperties.getBindingName(),

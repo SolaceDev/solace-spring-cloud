@@ -5,8 +5,7 @@ import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceConsumerDestination;
 import com.solacesystems.jcsmp.*;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.messaging.MessagingException;
@@ -18,9 +17,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+@Slf4j
 @RequiredArgsConstructor
 public class JCSMPInboundTopicMessageMultiplexer {
-    private static final Log logger = LogFactory.getLog(JCSMPInboundTopicMessageMultiplexer.class);
     private final JCSMPSession jcsmpSession;
     private final Supplier<SolaceMeterAccessor> solaceMeterAccessorSupplier;
     private final List<JCSMPInboundTopicMessageProducer> jcsmpInboundTopicMessageProducers = new ArrayList<>();
@@ -29,7 +28,7 @@ public class JCSMPInboundTopicMessageMultiplexer {
     private final LivecycleHooks livecycleHooks = new LivecycleHooks() {
         @Override
         public void start(JCSMPInboundTopicMessageProducer producer) {
-            logger.info("started producer " + producer);
+            log.info("started producer " + producer);
             synchronized (jcsmpInboundTopicMessageProducers) {
                 jcsmpInboundTopicMessageProducers.add(producer);
             }
@@ -38,7 +37,7 @@ public class JCSMPInboundTopicMessageMultiplexer {
 
         @Override
         public void stop(JCSMPInboundTopicMessageProducer producer) {
-            logger.info("stopped producer " + producer);
+            log.info("stopped producer " + producer);
             synchronized (jcsmpInboundTopicMessageProducers) {
                 jcsmpInboundTopicMessageProducers.remove(producer);
             }
@@ -72,7 +71,7 @@ public class JCSMPInboundTopicMessageMultiplexer {
                 this.msgConsumer.get().start();
             } catch (JCSMPException e) {
                 String msg = "Failed to get message consumer for topics";
-                logger.warn(msg, e);
+                log.warn(msg, e);
                 throw new MessagingException(msg, e);
             }
         }
@@ -88,9 +87,9 @@ public class JCSMPInboundTopicMessageMultiplexer {
     private void onException(final JCSMPException e) {
         String msg = "Received error while trying to read message from topic";
         if ((e instanceof JCSMPTransportException || e instanceof ClosedFacilityException)) {
-            logger.debug(msg, e);
+            log.debug(msg, e);
         } else {
-            logger.warn(msg, e);
+            log.warn(msg, e);
         }
     }
 
@@ -119,19 +118,19 @@ public class JCSMPInboundTopicMessageMultiplexer {
                 try {
                     jcsmpSession.removeSubscription(JCSMPFactory.onlyInstance().createTopic(topic));
                     appliedSubscriptions.remove(topic);
-                    logger.info("remove subscription for topic: " + topic);
+                    log.info("remove subscription for topic: " + topic);
                 } catch (Exception ex) {
-                    logger.warn("could not remove subscription, continuing", ex);
+                    log.warn("could not remove subscription, continuing", ex);
                 }
             }
             for (String topic : toAdd) {
                 jcsmpSession.addSubscription(JCSMPFactory.onlyInstance().createTopic(topic));
                 appliedSubscriptions.add(topic);
-                logger.info("add subscription for topic: " + topic);
+                log.info("add subscription for topic: " + topic);
             }
         } catch (JCSMPException e) {
             String msg = "Failed to get message consumer for topic consumer";
-            logger.warn(msg, e);
+            log.warn(msg, e);
             throw new MessagingException(msg, e);
         }
     }

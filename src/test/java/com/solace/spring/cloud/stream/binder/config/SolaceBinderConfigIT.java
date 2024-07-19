@@ -6,6 +6,7 @@ import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingPro
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;
 import com.solace.test.integration.semp.v2.monitor.model.MonitorMsgVpnClient;
+import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,14 +37,15 @@ import java.util.regex.Pattern;
 @ExtendWith(PubSubPlusExtension.class)
 public class SolaceBinderConfigIT {
     private SolaceMessageChannelBinderConfiguration binderConfiguration;
+    private JCSMPSessionConfiguration jcsmpSessionConfiguration;
     private String clientName;
 
     @BeforeEach
-    void setUp(JCSMPProperties jcsmpProperties, ApplicationContext applicationContext, TestInfo testInfo) {
+    void setUp(JCSMPProperties jcsmpProperties, ApplicationContext applicationContext, TestInfo testInfo) throws JCSMPException {
         clientName = UUID.randomUUID().toString();
         jcsmpProperties.setProperty(JCSMPProperties.CLIENT_NAME, clientName);
-
-        binderConfiguration = new SolaceMessageChannelBinderConfiguration(jcsmpProperties, new SolaceExtendedBindingProperties(), Optional.empty(), Optional.empty());
+        jcsmpSessionConfiguration = new JCSMPSessionConfiguration();
+        binderConfiguration = new SolaceMessageChannelBinderConfiguration(new SolaceExtendedBindingProperties(), jcsmpSessionConfiguration.jcsmpSession(jcsmpProperties, Optional.empty(), Optional.empty()), jcsmpSessionConfiguration.context(jcsmpProperties, Optional.empty(), Optional.empty()));
         AutowireCapableBeanFactory beanFactory = applicationContext.getAutowireCapableBeanFactory();
         beanFactory.autowireBean(binderConfiguration);
         binderConfiguration = (SolaceMessageChannelBinderConfiguration) beanFactory.initializeBean(binderConfiguration, testInfo.toString());
@@ -52,7 +54,7 @@ public class SolaceBinderConfigIT {
     @Test
     public void testClientInfoProvider(JCSMPProperties jcsmpProperties, SempV2Api sempV2Api, SoftAssertions softly) throws Exception {
         MonitorMsgVpnClient client;
-        SolaceMessageChannelBinder solaceMessageChannelBinder = binderConfiguration.solaceMessageChannelBinder(binderConfiguration.provisioningProvider(), null, null);
+        SolaceMessageChannelBinder solaceMessageChannelBinder = binderConfiguration.solaceMessageChannelBinder(jcsmpSessionConfiguration.provisioningProvider(jcsmpProperties, Optional.empty(), Optional.empty()), null, null);
         try {
             String vpnName = jcsmpProperties.getStringProperty(JCSMPProperties.VPN_NAME);
             client = sempV2Api.monitor().getMsgVpnClient(vpnName, clientName, null).getData();

@@ -11,13 +11,13 @@ import java.util.Map;
 @Configuration
 public class ExtendedBindingHandlerMappingsProviderConfiguration {
 
-	@Bean
-	public MappingsProvider solaceExtendedPropertiesDefaultMappingsProvider() {
-		return () -> {
-			Map<ConfigurationPropertyName, ConfigurationPropertyName> mappings = new HashMap<>();
-			mappings.put(ConfigurationPropertyName.of("spring.cloud.stream.solace.bindings"),
-					ConfigurationPropertyName.of("spring.cloud.stream.solace.default"));
-			return mappings;
-		};
-	}
+    @Bean
+    public MappingsProvider solaceExtendedPropertiesDefaultMappingsProvider() {
+        return () -> {
+            Map<ConfigurationPropertyName, ConfigurationPropertyName> mappings = new HashMap<>();
+            mappings.put(ConfigurationPropertyName.of("spring.cloud.stream.solace.bindings"),
+                    ConfigurationPropertyName.of("spring.cloud.stream.solace.default"));
+            return mappings;
+        };
+    }
 }

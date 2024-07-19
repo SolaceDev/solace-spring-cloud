@@ -13,6 +13,7 @@ import com.solace.spring.cloud.stream.binder.provisioning.SolaceProvisioningUtil
 import com.solace.spring.cloud.stream.binder.util.*;
 import com.solacesystems.jcsmp.*;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.cloud.stream.binder.*;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+@Slf4j
 public class SolaceMessageChannelBinder
         extends AbstractMessageChannelBinder<ExtendedConsumerProperties<SolaceConsumerProperties>,
         ExtendedProducerProperties<SolaceProducerProperties>,
@@ -69,7 +71,7 @@ public class SolaceMessageChannelBinder
 
     @Override
     public void destroy() {
-        logger.info(String.format("Closing JCSMP session %s", jcsmpSession.getSessionName()));
+        log.info(String.format("Closing JCSMP session %s", jcsmpSession.getSessionName()));
         sessionProducerManager.release(errorHandlerProducerKey);
         consumersRemoteStopFlag.set(true);
         jcsmpSession.closeSession();
@@ -102,13 +104,13 @@ public class SolaceMessageChannelBinder
         if (properties.getExtension() != null && properties.getExtension().getQualityOfService() == QualityOfService.AT_MOST_ONCE) {
             return createTopicMessageProducer(destination, group, properties);
         }
-		if (!properties.isBatchMode() && properties.getExtension().isTransacted()) {
-			throw new IllegalArgumentException("Non-batched, transacted consumers are not supported");
-		}
+        if (!properties.isBatchMode() && properties.getExtension().isTransacted()) {
+            throw new IllegalArgumentException("Non-batched, transacted consumers are not supported");
+        }
 
-		if (properties.getExtension().isTransacted() && properties.getExtension().isAutoBindErrorQueue()) {
-			throw new IllegalArgumentException("transacted consumers do not support error queues");
-		}
+        if (properties.getExtension().isTransacted() && properties.getExtension().isAutoBindErrorQueue()) {
+            throw new IllegalArgumentException("transacted consumers do not support error queues");
+        }
         return createQueueMessageProducer(destination, group, properties);
     }
 
@@ -164,17 +166,17 @@ public class SolaceMessageChannelBinder
     protected PolledConsumerResources createPolledConsumerResources(String name, String group,
                                                                     ConsumerDestination destination,
                                                                     ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties) {
-		if (!consumerProperties.isBatchMode() && consumerProperties.getExtension().isTransacted()) {
-			throw new IllegalArgumentException("Non-batched, transacted consumers are not supported");
-		}
-		if (consumerProperties.getExtension().isTransacted() && consumerProperties.getExtension().isAutoBindErrorQueue()) {
-			throw new IllegalArgumentException("transacted consumers do not support error queues");
-		}
+        if (!consumerProperties.isBatchMode() && consumerProperties.getExtension().isTransacted()) {
+            throw new IllegalArgumentException("Non-batched, transacted consumers are not supported");
+        }
+        if (consumerProperties.getExtension().isTransacted() && consumerProperties.getExtension().isAutoBindErrorQueue()) {
+            throw new IllegalArgumentException("transacted consumers do not support error queues");
+        }
         if (consumerProperties.getConcurrency() > 1) {
-            logger.warn("Polled consumers do not support concurrency > 1, it will be ignored...");
+            log.warn("Polled consumers do not support concurrency > 1, it will be ignored...");
         }
         if (consumerProperties.isBatchMode()) {
-            logger.error("BatchMode is deprecated and should not be used.");
+            log.error("BatchMode is deprecated and should not be used.");
         }
 
         SolaceConsumerDestination solaceDestination = (SolaceConsumerDestination) destination;

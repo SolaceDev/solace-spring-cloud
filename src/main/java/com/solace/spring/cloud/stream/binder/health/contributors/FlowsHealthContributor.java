@@ -10,26 +10,26 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class FlowsHealthContributor implements CompositeHealthContributor {
-	private final Map<String, FlowHealthIndicator> flowHealthContributor = new HashMap<>();
+    private final Map<String, FlowHealthIndicator> flowHealthContributor = new HashMap<>();
 
-	public void addFlowContributor(String flowId, FlowHealthIndicator flowHealthIndicator) {
-		flowHealthContributor.put(flowId, flowHealthIndicator);
-	}
+    public void addFlowContributor(String flowId, FlowHealthIndicator flowHealthIndicator) {
+        flowHealthContributor.put(flowId, flowHealthIndicator);
+    }
 
-	public void removeFlowContributor(String flowId) {
-		flowHealthContributor.remove(flowId);
-	}
+    public void removeFlowContributor(String flowId) {
+        flowHealthContributor.remove(flowId);
+    }
 
-	@Override
-	public FlowHealthIndicator getContributor(String flowId) {
-		return flowHealthContributor.get(flowId);
-	}
+    @Override
+    public FlowHealthIndicator getContributor(String flowId) {
+        return flowHealthContributor.get(flowId);
+    }
 
-	@Override
-	public Iterator<NamedContributor<HealthContributor>> iterator() {
-		return flowHealthContributor.entrySet()
-				.stream()
-				.map((entry) -> NamedContributor.of(entry.getKey(), (HealthContributor) entry.getValue()))
-				.iterator();
-	}
+    @Override
+    public Iterator<NamedContributor<HealthContributor>> iterator() {
+        return flowHealthContributor.entrySet()
+                .stream()
+                .map((entry) -> NamedContributor.of(entry.getKey(), (HealthContributor) entry.getValue()))
+                .iterator();
+    }
 }

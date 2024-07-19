@@ -22,6 +22,7 @@ import com.solace.test.integration.semp.v2.config.model.ConfigMsgVpnQueueSubscri
 import com.solacesystems.jcsmp.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,8 +30,6 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.junitpioneer.jupiter.cartesian.CartesianTest.Values;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.cloud.stream.binder.Binding;
@@ -58,6 +57,7 @@ import static com.solace.spring.cloud.stream.binder.test.util.RetryableAssertion
 import static com.solace.spring.cloud.stream.binder.test.util.SolaceSpringCloudStreamAssertions.isValidMessageSizeMeter;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Slf4j
 @SpringJUnitConfig(classes = {
         TestMeterRegistryConfiguration.class,
         SolaceJavaAutoConfiguration.class,
@@ -67,7 +67,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(PubSubPlusExtension.class)
 @ExtendWith(SpringCloudStreamExtension.class)
 public class SolaceBinderMeterIT {
-    private static final Logger logger = LoggerFactory.getLogger(SolaceBinderMeterIT.class);
 
     @BeforeAll
     static void beforeAll(@Autowired SolaceMessageMeterBinder messageMeterBinder,
@@ -159,7 +158,7 @@ public class SolaceBinderMeterIT {
                 .as("Message has binary metadata content length")
                 .allSatisfy(length -> assertThat(length).isGreaterThan(defaultBinaryMetadataContentLength));
 
-        logger.info("Validating message size meters");
+        log.info("Validating message size meters");
         retryAssert(() -> {
             assertThat(meterRegistry.find(SolaceMessageMeterBinder.METER_NAME_PAYLOAD_SIZE)
                     .tag(SolaceMessageMeterBinder.TAG_NAME, consumerProperties.getBindingName())
@@ -238,7 +237,7 @@ public class SolaceBinderMeterIT {
                 new ConsumerFlowProperties().setEndpoint(queue).setStartState(true));
         List<BytesXMLMessage> receivedMessages = new ArrayList<>();
         try {
-            logger.info("Consuming messages");
+            log.info("Consuming messages");
             for (int i = 0; i < numMessages; i++) {
                 BytesXMLMessage receivedMessage = flowReceiver.receive((int) TimeUnit.MINUTES.toMillis(1));
                 assertThat(receivedMessage).as("Didn't receive message within timeout").isNotNull();
@@ -258,7 +257,7 @@ public class SolaceBinderMeterIT {
         int aggregateBinaryMetadataContentLength = receivedMessages.stream()
                 .mapToInt(m -> m.getBinaryMetadataContentLength(0))
                 .sum();
-        logger.info("Validating message size meters");
+        log.info("Validating message size meters");
         retryAssert(() -> {
             assertThat(meterRegistry.find(SolaceMessageMeterBinder.METER_NAME_PAYLOAD_SIZE)
                     .tag(SolaceMessageMeterBinder.TAG_NAME, producerProperties.getBindingName())

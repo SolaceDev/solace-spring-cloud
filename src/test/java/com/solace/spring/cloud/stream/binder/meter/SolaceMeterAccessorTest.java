@@ -10,13 +10,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class SolaceMeterAccessorTest {
-	@Test
-	public void testRecordMessage(@Mock SolaceMessageMeterBinder messageMeterBinder) {
-		SolaceMeterAccessor solaceMeterAccessor = new SolaceMeterAccessor(messageMeterBinder);
-		String bindingName = "test-binding";
-		BytesMessage message = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
+    @Test
+    public void testRecordMessage(@Mock SolaceMessageMeterBinder messageMeterBinder) {
+        SolaceMeterAccessor solaceMeterAccessor = new SolaceMeterAccessor(messageMeterBinder);
+        String bindingName = "test-binding";
+        BytesMessage message = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
 
-		solaceMeterAccessor.recordMessage(bindingName, message);
-		Mockito.verify(messageMeterBinder).recordMessage(bindingName, message);
-	}
+        solaceMeterAccessor.recordMessage(bindingName, message);
+        Mockito.verify(messageMeterBinder).recordMessage(bindingName, message);
+    }
 }

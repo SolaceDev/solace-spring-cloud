@@ -8,13 +8,13 @@ import com.solacesystems.jcsmp.XMLMessage;
  * <p>Allows for the Solace binder to still function correctly without micrometer on the classpath.</p>
  */
 public class SolaceMeterAccessor {
-	private final SolaceMessageMeterBinder solaceMessageMeterBinder;
+    private final SolaceMessageMeterBinder solaceMessageMeterBinder;
 
-	public SolaceMeterAccessor(SolaceMessageMeterBinder solaceMessageMeterBinder) {
-		this.solaceMessageMeterBinder = solaceMessageMeterBinder;
-	}
+    public SolaceMeterAccessor(SolaceMessageMeterBinder solaceMessageMeterBinder) {
+        this.solaceMessageMeterBinder = solaceMessageMeterBinder;
+    }
 
-	public void recordMessage(String bindingName, XMLMessage message) {
-		solaceMessageMeterBinder.recordMessage(bindingName, message);
-	}
+    public void recordMessage(String bindingName, XMLMessage message) {
+        solaceMessageMeterBinder.recordMessage(bindingName, message);
+    }
 }

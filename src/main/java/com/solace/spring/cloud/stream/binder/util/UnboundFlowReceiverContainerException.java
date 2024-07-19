@@ -8,7 +8,7 @@ package com.solace.spring.cloud.stream.binder.util;
  * </ul>
  */
 public class UnboundFlowReceiverContainerException extends Exception {
-	public UnboundFlowReceiverContainerException(String message) {
-		super(message);
-	}
+    public UnboundFlowReceiverContainerException(String message) {
+        super(message);
+    }
 }
