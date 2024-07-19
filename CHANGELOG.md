@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 - Add .editorconfig and reformat the whole code.
 
 ### Changed
+- Bump versions to spring boot 3.3.2
+- Bump versions to spring cloud 2023.0.3
 - Bump versions of solace jcsmp to 10.24.1
 - Use only Slf4j to log.
 
