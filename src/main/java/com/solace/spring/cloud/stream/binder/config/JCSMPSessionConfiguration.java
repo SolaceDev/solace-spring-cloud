@@ -36,12 +36,12 @@ public class JCSMPSessionConfiguration {
     }
 
     @Bean
-    Context context(JCSMPProperties jcsmpProperties, Optional<SolaceBinderHealthContributor> sessionHealthIndicator, Optional<SolaceSessionEventHandler> solaceSessionEventHandler) {
+    Context jcsmpContext(JCSMPProperties jcsmpProperties, Optional<SolaceBinderHealthContributor> sessionHealthIndicator, Optional<SolaceSessionEventHandler> solaceSessionEventHandler) {
         return ensureSessionCache(jcsmpProperties, sessionHealthIndicator, solaceSessionEventHandler).context();
     }
 
     @Bean
-    SolaceEndpointProvisioner provisioningProvider(JCSMPProperties jcsmpProperties, Optional<SolaceBinderHealthContributor> sessionHealthIndicator, Optional<SolaceSessionEventHandler> solaceSessionEventHandler) {
+    SolaceEndpointProvisioner jcsmpProvisioningProvider(JCSMPProperties jcsmpProperties, Optional<SolaceBinderHealthContributor> sessionHealthIndicator, Optional<SolaceSessionEventHandler> solaceSessionEventHandler) {
         return ensureSessionCache(jcsmpProperties, sessionHealthIndicator, solaceSessionEventHandler).solaceEndpointProvisioner();
     }
 

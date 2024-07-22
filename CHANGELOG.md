@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.2.4] - 2024-07-22
+### Changed
+- Change Bean name of context to jcsmpContext to avoid name clashes with jooq
+
 ## [4.2.3] - 2024-07-19
 ### Added
 - Cache JCSMPSessions and provide them as Bean to avoid multiple connections to the same broker.
