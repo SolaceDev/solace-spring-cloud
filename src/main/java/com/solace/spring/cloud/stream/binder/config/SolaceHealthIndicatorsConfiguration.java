@@ -9,6 +9,7 @@ import com.solace.spring.cloud.stream.binder.properties.SolaceSessionHealthPrope
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnClass(name = "org.springframework.boot.actuate.health.HealthIndicator")
 @ConditionalOnEnabledHealthIndicator("binders")
 @EnableConfigurationProperties({SolaceSessionHealthProperties.class})
+@ConditionalOnProperty(name = "solace.java.host")
 public class SolaceHealthIndicatorsConfiguration {
 
     @Bean

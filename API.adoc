@@ -494,7 +494,6 @@ See https://docs.solace.com/API/API-Developer-Guide/Message-Delivery-Modes.htm f
 The deliveryMode on the producer will be used to send messages on the configured binder.
 Possible values:
 - `PERSISTENT`
-- `NON_PERSISTENT`
 - `DIRECT`
 * If using qualityOfService=`AT_MOST_ONCE` to reduce latency it is suggested to set the deliveryMode to `DIRECT` to avoid having the messages persisted on publish.
 

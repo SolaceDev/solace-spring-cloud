@@ -9,6 +9,7 @@ import com.solacesystems.jcsmp.*;
 import com.solacesystems.jcsmp.impl.JCSMPBasicSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -22,6 +23,7 @@ import static com.solacesystems.jcsmp.XMLMessage.Outcome.*;
 @RequiredArgsConstructor
 @Configuration
 @Import(SolaceHealthIndicatorsConfiguration.class)
+@ConditionalOnProperty(name = "solace.java.host")
 public class JCSMPSessionConfiguration {
     private final static Map<String, SessionCacheEntry> SESSION_CACHE = new HashMap<>();
 

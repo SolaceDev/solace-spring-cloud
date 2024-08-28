@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [5.0.0] - 2024-07-31
+## [5.0.1] - 2024-07-29
+### Added
+- Support for tests without excluding Autoconfig
+
+## [5.0.0] - 2024-07-28
 ### Added
 - Large message support
 
