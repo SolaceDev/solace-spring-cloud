@@ -86,3 +86,5 @@ to abide by its terms.
 
 Open an issue at https://github.com/SchweizerischeBundesbahnen/spring-cloud-stream-binder/issues
 
+## Links
+[Java profiler](https://www.ej-technologies.com/jprofiler) used to improve performance: [![JProfiler](https://www.ej-technologies.com/images/product_banners/jprofiler_small.png)](https://www.ej-technologies.com/jprofiler)
