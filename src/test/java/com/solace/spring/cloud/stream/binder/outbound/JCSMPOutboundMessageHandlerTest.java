@@ -4,6 +4,7 @@ import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solace.spring.cloud.stream.binder.test.spring.MessageGenerator;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.*;
 import com.solacesystems.jcsmp.*;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -32,6 +33,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -59,6 +61,8 @@ public class JCSMPOutboundMessageHandlerTest {
     private XMLMessageProducer messageProducer;
     @Mock
     private SolaceMeterAccessor solaceMeterAccessor;
+    @Mock
+    private TracingProxy tracingProxy;
 
     @BeforeEach
     public void init(@Mock MessageChannel errChannel,
@@ -89,7 +93,8 @@ public class JCSMPOutboundMessageHandlerTest {
                 errChannel,
                 sessionProducerManager,
                 producerProperties,
-                solaceMeterAccessor
+                Optional.of(solaceMeterAccessor),
+                Optional.of(tracingProxy)
         );
         messageHandler.setErrorMessageStrategy(errorMessageStrategy);
     }
@@ -344,7 +349,8 @@ public class JCSMPOutboundMessageHandlerTest {
                 null,
                 new JCSMPSessionProducerManager(session),
                 new ExtendedProducerProperties<>(producerProperties),
-                solaceMeterAccessor
+                Optional.of(solaceMeterAccessor),
+                Optional.of(tracingProxy)
         );
         messageHandler.start();
 

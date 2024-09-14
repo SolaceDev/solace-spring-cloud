@@ -4,17 +4,18 @@ import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceProvisioningUtil;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.*;
 import com.solace.spring.cloud.stream.binder.util.JCSMPSessionProducerManager.CloudStreamEventHandler;
 import com.solacesystems.jcsmp.*;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.binder.BinderHeaders;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
 import org.springframework.context.Lifecycle;
 import org.springframework.integration.support.ErrorMessageStrategy;
-import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
@@ -34,8 +35,8 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
     private final ExtendedProducerProperties<SolaceProducerProperties> properties;
     private final JCSMPStreamingPublishCorrelatingEventHandler producerEventHandler = new CloudStreamEventHandler();
     private final LargeMessageSupport largeMessageSupport = new LargeMessageSupport();
-    @Nullable
-    private final SolaceMeterAccessor solaceMeterAccessor;
+    private final Optional<SolaceMeterAccessor> solaceMeterAccessor;
+    private final Optional<TracingProxy> tracing;
     private XMLMessageProducer producer;
     private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
     private boolean isRunning = false;
@@ -48,7 +49,8 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
                                        MessageChannel errorChannel,
                                        JCSMPSessionProducerManager producerManager,
                                        ExtendedProducerProperties<SolaceProducerProperties> properties,
-                                       @Nullable SolaceMeterAccessor solaceMeterAccessor) {
+                                       Optional<SolaceMeterAccessor> solaceMeterAccessor,
+                                       Optional<TracingProxy> tracing) {
         this.configDestinationType = properties.getExtension().getDestinationType();
         this.configDestination = configDestinationType == DestinationType.TOPIC ?
                 JCSMPFactory.onlyInstance().createTopic(destination.getName()) :
@@ -58,8 +60,10 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
         this.producerManager = producerManager;
         this.properties = properties;
         this.solaceMeterAccessor = solaceMeterAccessor;
+        this.tracing = tracing;
     }
 
+    @SneakyThrows
     @Override
     public void handleMessage(Message<?> message) throws MessagingException {
         ErrorChannelSendingCorrelationKey correlationKey = new ErrorChannelSendingCorrelationKey(message,
@@ -96,6 +100,12 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
                 properties.getExtension().getHeaderExclusions(),
                 properties.getExtension().isNonserializableHeaderConvertToString(),
                 properties.getExtension().getDeliveryMode());
+        if (tracing.isPresent()) {
+            SDTMap tracingHeader = tracing.get().getTracingHeader();
+            if (tracingHeader != null) {
+                smfMessageMapped.getProperties().putMap(TracingProxy.TRACING_HEADER_KEY, tracingHeader);
+            }
+        }
 
         smfMessageMapped.setCorrelationKey(correlationKey);
         dynamicDestination = getDynamicDestination(message.getHeaders(), correlationKey);
@@ -119,9 +129,9 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
         } catch (JCSMPException e) {
             throw handleMessagingException(correlationKey, "Unable to send message(s) to destination", e);
         } finally {
-            if (solaceMeterAccessor != null) {
+            if (solaceMeterAccessor.isPresent()) {
                 for (XMLMessage smfMessage : smfMessages) {
-                    solaceMeterAccessor.recordMessage(properties.getBindingName(), smfMessage);
+                    solaceMeterAccessor.get().recordMessage(properties.getBindingName(), smfMessage);
                 }
             }
         }

@@ -28,7 +28,6 @@ public class SolaceEndpointProvisioner
         implements ProvisioningProvider<ExtendedConsumerProperties<SolaceConsumerProperties>, ExtendedProducerProperties<SolaceProducerProperties>> {
 
     private final JCSMPSession jcsmpSession;
-    private final JCSMPSessionEventHandler jcsmpSessionEventHandler;
 
     @Override
     public ProducerDestination provisionProducerDestination(String name,

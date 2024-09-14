@@ -6,6 +6,7 @@ import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceConsumerDestination;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceProvisioningUtil;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.ErrorQueueInfrastructure;
 import com.solace.spring.cloud.stream.binder.util.FlowReceiverContainer;
 import com.solace.spring.cloud.stream.binder.util.SolaceMessageConversionException;
@@ -46,8 +47,9 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
     private final JCSMPSession jcsmpSession;
     private final ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties;
     private final EndpointProperties endpointProperties;
-    @Nullable
-    private final SolaceMeterAccessor solaceMeterAccessor;
+    private final Optional<SolaceMeterAccessor> solaceMeterAccessor;
+    private final Optional<TracingProxy> tracingProxy;
+    private final Optional<SolaceBinderHealthAccessor> solaceBinderHealthAccessor;
     private final long shutdownInterruptThresholdInMillis = 500; //TODO Make this configurable
     private final List<FlowReceiverContainer> flowReceivers;
     private final Set<AtomicBoolean> consumerStopFlags;
@@ -63,8 +65,6 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
     private RecoveryCallback<?> recoveryCallback;
     @Setter
     private ErrorQueueInfrastructure errorQueueInfrastructure;
-    @Nullable
-    private SolaceBinderHealthAccessor solaceBinderHealthAccessor;
 
     private static final ThreadLocal<AttributeAccessor> attributesHolder = new ThreadLocal<>();
 
@@ -72,12 +72,16 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
                                             JCSMPSession jcsmpSession,
                                             ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties,
                                             @Nullable EndpointProperties endpointProperties,
-                                            @Nullable SolaceMeterAccessor solaceMeterAccessor) {
+                                            Optional<SolaceMeterAccessor> solaceMeterAccessor,
+                                            Optional<TracingProxy> tracingProxy,
+                                            Optional<SolaceBinderHealthAccessor> solaceBinderHealthAccessor) {
         this.consumerDestination = consumerDestination;
         this.jcsmpSession = jcsmpSession;
         this.consumerProperties = consumerProperties;
         this.endpointProperties = endpointProperties;
         this.solaceMeterAccessor = solaceMeterAccessor;
+        this.tracingProxy = tracingProxy;
+        this.solaceBinderHealthAccessor = solaceBinderHealthAccessor;
         this.flowReceivers = new ArrayList<>(consumerProperties.getConcurrency());
         this.consumerStopFlags = new HashSet<>(consumerProperties.getConcurrency());
     }
@@ -131,9 +135,9 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
             flowReceivers.add(flowReceiverContainer);
         }
 
-        if (solaceBinderHealthAccessor != null) {
+        if (solaceBinderHealthAccessor.isPresent()) {
             for (int i = 0; i < flowReceivers.size(); i++) {
-                solaceBinderHealthAccessor.addFlow(consumerProperties.getBindingName(), i, flowReceivers.get(i));
+                solaceBinderHealthAccessor.get().addFlow(consumerProperties.getBindingName(), i, flowReceivers.get(i));
             }
         }
 
@@ -193,9 +197,9 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
                 }
             }
 
-            if (solaceBinderHealthAccessor != null) {
+            if (solaceBinderHealthAccessor.isPresent()) {
                 for (int i = 0; i < flowReceivers.size(); i++) {
-                    solaceBinderHealthAccessor.removeFlow(consumerProperties.getBindingName(), i);
+                    solaceBinderHealthAccessor.get().removeFlow(consumerProperties.getBindingName(), i);
                 }
             }
 
@@ -220,9 +224,6 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
         return 0;
     }
 
-    public void setSolaceBinderHealthAccessor(@Nullable SolaceBinderHealthAccessor solaceBinderHealthAccessor) {
-        this.solaceBinderHealthAccessor = solaceBinderHealthAccessor;
-    }
 
     @Override
     protected AttributeAccessor getErrorMessageAttributes(org.springframework.messaging.Message<?> message) {
@@ -254,6 +255,7 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
                     retryTemplate,
                     recoveryCallback,
                     solaceMeterAccessor,
+                    tracingProxy,
                     remoteStopFlag,
                     attributesHolder
             );
@@ -266,6 +268,7 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
                     ackCallbackFactory,
                     this::sendErrorMessageIfNecessary,
                     solaceMeterAccessor,
+                    tracingProxy,
                     remoteStopFlag,
                     attributesHolder,
                     this.getErrorChannel() != null

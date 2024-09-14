@@ -12,6 +12,8 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 
+import java.util.Optional;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,7 +32,7 @@ public class InboundXMLMessageListenerTest {
                 .thenThrow(new StaleSessionException("Session has become stale", new JCSMPException("Specific JCSMP exception")));
 
         BasicInboundXMLMessageListener inboundXMLMessageListener = new BasicInboundXMLMessageListener(
-                flowReceiverContainer, consumerDestination, null, null, null, null, null, null,
+                flowReceiverContainer, consumerDestination, null, null, null, null, Optional.empty(), Optional.empty(), null,
                 null, false);
 
         inboundXMLMessageListener.run();

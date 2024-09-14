@@ -1,7 +1,7 @@
 package com.solace.spring.cloud.stream.binder;
 
 import com.solace.spring.cloud.stream.binder.health.SolaceBinderHealthAccessor;
-import com.solace.spring.cloud.stream.binder.inbound.*;
+import com.solace.spring.cloud.stream.binder.inbound.JCSMPInboundQueueMessageProducer;
 import com.solace.spring.cloud.stream.binder.inbound.topic.JCSMPInboundTopicMessageMultiplexer;
 import com.solace.spring.cloud.stream.binder.inbound.topic.JCSMPInboundTopicMessageProducer;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
@@ -12,6 +12,7 @@ import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceConsumerDestination;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceEndpointProvisioner;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceProvisioningUtil;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.*;
 import com.solacesystems.jcsmp.*;
 import lombok.Setter;
@@ -20,14 +21,13 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.cloud.stream.binder.*;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
-import org.springframework.integration.StaticMessageHeaderAccessor;
 import org.springframework.integration.core.MessageProducer;
 import org.springframework.integration.support.ErrorMessageStrategy;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -46,24 +46,27 @@ public class SolaceMessageChannelBinder
     private final JCSMPSessionProducerManager sessionProducerManager;
     private final AtomicBoolean consumersRemoteStopFlag = new AtomicBoolean(false);
     private final String errorHandlerProducerKey = UUID.randomUUID().toString();
-    @Setter
-    private SolaceMeterAccessor solaceMeterAccessor;
+    private final Optional<SolaceMeterAccessor> solaceMeterAccessor;
+    private final Optional<TracingProxy> tracingProxy;
+    private final Optional<SolaceBinderHealthAccessor> solaceBinderHealthAccessor;
     @Setter
     private SolaceExtendedBindingProperties extendedBindingProperties = new SolaceExtendedBindingProperties();
     private static final SolaceMessageHeaderErrorMessageStrategy errorMessageStrategy = new SolaceMessageHeaderErrorMessageStrategy();
-    @Nullable
-    private SolaceBinderHealthAccessor solaceBinderHealthAccessor;
 
-    public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, SolaceEndpointProvisioner solaceEndpointProvisioner) {
-        this(jcsmpSession, null, solaceEndpointProvisioner);
-    }
-
-    public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, Context jcsmpContext, SolaceEndpointProvisioner solaceEndpointProvisioner) {
+    public SolaceMessageChannelBinder(JCSMPSession jcsmpSession,
+                                      Context jcsmpContext,
+                                      SolaceEndpointProvisioner solaceEndpointProvisioner,
+                                      Optional<SolaceMeterAccessor> solaceMeterAccessor,
+                                      Optional<TracingProxy> tracingProxy,
+                                      Optional<SolaceBinderHealthAccessor> solaceBinderHealthAccessor) {
         super(new String[0], solaceEndpointProvisioner);
         this.jcsmpSession = jcsmpSession;
         this.jcsmpContext = jcsmpContext;
+        this.solaceMeterAccessor = solaceMeterAccessor;
+        this.tracingProxy = tracingProxy;
+        this.solaceBinderHealthAccessor=solaceBinderHealthAccessor;
         this.sessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
-        this.jcsmpInboundTopicMessageMultiplexer = new JCSMPInboundTopicMessageMultiplexer(jcsmpSession, () -> this.solaceMeterAccessor);
+        this.jcsmpInboundTopicMessageMultiplexer = new JCSMPInboundTopicMessageMultiplexer(jcsmpSession, this.solaceMeterAccessor, this.tracingProxy);
     }
 
     @Override
@@ -92,7 +95,8 @@ public class SolaceMessageChannelBinder
                 errorChannel,
                 sessionProducerManager,
                 producerProperties,
-                solaceMeterAccessor);
+                solaceMeterAccessor,
+                tracingProxy);
 
         if (errorChannel != null) {
             handler.setErrorMessageStrategy(errorMessageStrategy);
@@ -120,11 +124,9 @@ public class SolaceMessageChannelBinder
                 jcsmpSession,
                 properties,
                 getConsumerEndpointProperties(properties),
-                solaceMeterAccessor);
-
-        if (solaceBinderHealthAccessor != null) {
-            adapter.setSolaceBinderHealthAccessor(solaceBinderHealthAccessor);
-        }
+                solaceMeterAccessor,
+                tracingProxy,
+                solaceBinderHealthAccessor);
 
         adapter.setRemoteStopFlag(consumersRemoteStopFlag);
         adapter.setPostStart(getConsumerPostStart(solaceDestination, properties));
@@ -207,10 +209,6 @@ public class SolaceMessageChannelBinder
     @Override
     public Class<? extends BinderSpecificPropertiesProvider> getExtendedPropertiesEntryClass() {
         return this.extendedBindingProperties.getExtendedPropertiesEntryClass();
-    }
-
-    public void setSolaceBinderHealthAccessor(@Nullable SolaceBinderHealthAccessor solaceBinderHealthAccessor) {
-        this.solaceBinderHealthAccessor = solaceBinderHealthAccessor;
     }
 
     /**

@@ -39,6 +39,8 @@ import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
+import java.lang.reflect.Field;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
@@ -65,9 +67,7 @@ public class SolaceBinderHealthIT {
         SolaceTestBinder binder = context.getBinder();
 
         BindingsHealthContributor bindingsHealthContributor = new BindingsHealthContributor();
-        binder.getBinder().setSolaceBinderHealthAccessor(new SolaceBinderHealthAccessor(
-                new SolaceBinderHealthContributor(new SessionHealthIndicator(new SolaceSessionHealthProperties()),
-                        bindingsHealthContributor)));
+        setupBinder(bindingsHealthContributor, binder);
 
         ConsumerInfrastructureUtil<T> consumerInfrastructureUtil = context.createConsumerInfrastructureUtil(channelType);
         T moduleInputChannel = consumerInfrastructureUtil.createChannel("input", new BindingProperties());
@@ -125,6 +125,7 @@ public class SolaceBinderHealthIT {
         consumerBinding.unbind();
     }
 
+
     @CartesianTest(name = "[{index}] channelType={0}, concurrency={1} healthStatus={2}")
     public <T> void testConsumerFlowHealthUnhealthy(
             @Values(classes = {DirectChannel.class}) Class<T> channelType,
@@ -136,9 +137,7 @@ public class SolaceBinderHealthIT {
         SolaceTestBinder binder = context.getBinder();
 
         BindingsHealthContributor bindingsHealthContributor = new BindingsHealthContributor();
-        binder.getBinder().setSolaceBinderHealthAccessor(new SolaceBinderHealthAccessor(
-                new SolaceBinderHealthContributor(new SessionHealthIndicator(new SolaceSessionHealthProperties()),
-                        bindingsHealthContributor)));
+        setupBinder(bindingsHealthContributor, binder);
 
         ConsumerInfrastructureUtil<T> consumerInfrastructureUtil = context.createConsumerInfrastructureUtil(channelType);
         T moduleInputChannel = consumerInfrastructureUtil.createChannel("input", new BindingProperties());
@@ -195,9 +194,7 @@ public class SolaceBinderHealthIT {
         SolaceTestBinder binder = context.getBinder();
 
         BindingsHealthContributor bindingsHealthContributor = Mockito.spy(new BindingsHealthContributor());
-        binder.getBinder().setSolaceBinderHealthAccessor(new SolaceBinderHealthAccessor(
-                new SolaceBinderHealthContributor(new SessionHealthIndicator(new SolaceSessionHealthProperties()),
-                        bindingsHealthContributor)));
+        setupBinder(bindingsHealthContributor, binder);
 
         ConsumerInfrastructureUtil<T> consumerInfrastructureUtil = context.createConsumerInfrastructureUtil(channelType);
 
@@ -265,5 +262,14 @@ public class SolaceBinderHealthIT {
 
         producerBinding.unbind();
         consumerBinding.unbind();
+    }
+
+    private static void setupBinder(BindingsHealthContributor bindingsHealthContributor, SolaceTestBinder binder) throws NoSuchFieldException, IllegalAccessException {
+        SolaceBinderHealthAccessor solaceBinderHealthAccessor = new SolaceBinderHealthAccessor(
+                new SolaceBinderHealthContributor(new SessionHealthIndicator(new SolaceSessionHealthProperties()),
+                        bindingsHealthContributor));
+        Field solaceBinderHealthAccessorField = binder.getBinder().getClass().getDeclaredField("solaceBinderHealthAccessor");
+        solaceBinderHealthAccessorField.setAccessible(true);
+        solaceBinderHealthAccessorField.set(binder.getBinder(), Optional.of(solaceBinderHealthAccessor));
     }
 }

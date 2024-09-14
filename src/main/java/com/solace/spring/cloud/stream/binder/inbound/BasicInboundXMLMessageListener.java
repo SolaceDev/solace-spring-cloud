@@ -4,6 +4,7 @@ import com.solace.spring.cloud.stream.binder.inbound.acknowledge.JCSMPAcknowledg
 import com.solace.spring.cloud.stream.binder.inbound.acknowledge.SolaceAckUtil;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.FlowReceiverContainer;
 import com.solace.spring.cloud.stream.binder.util.SolaceAcknowledgmentException;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.integration.acks.AcknowledgmentCallback;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -30,7 +32,8 @@ public class BasicInboundXMLMessageListener extends InboundXMLMessageListener {
                                    Consumer<Message<?>> messageConsumer,
                                    JCSMPAcknowledgementCallbackFactory ackCallbackFactory,
                                    BiFunction<Message<?>, RuntimeException, Boolean> errorHandlerFunction,
-                                   @Nullable SolaceMeterAccessor solaceMeterAccessor,
+                                   Optional<SolaceMeterAccessor> solaceMeterAccessor,
+                                   Optional<TracingProxy> tracingProxy,
                                    @Nullable AtomicBoolean remoteStopFlag,
                                    ThreadLocal<AttributeAccessor> attributesHolder,
                                    boolean needHolderAndAttributes) {
@@ -40,6 +43,7 @@ public class BasicInboundXMLMessageListener extends InboundXMLMessageListener {
                 messageConsumer,
                 ackCallbackFactory,
                 solaceMeterAccessor,
+                tracingProxy,
                 remoteStopFlag,
                 attributesHolder,
                 needHolderAndAttributes,

@@ -3,8 +3,10 @@ package com.solace.spring.cloud.stream.binder.inbound.topic;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceConsumerDestination;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.XMLMessageMapper;
 import com.solacesystems.jcsmp.BytesXMLMessage;
+import com.solacesystems.jcsmp.SDTMap;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -13,7 +15,6 @@ import org.springframework.integration.acks.AcknowledgmentCallback;
 import org.springframework.integration.context.OrderlyShutdownCapable;
 import org.springframework.integration.core.Pausable;
 import org.springframework.integration.endpoint.MessageProducerSupport;
-import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.util.CollectionUtils;
 
@@ -21,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 @Slf4j
 @Setter
@@ -30,8 +32,8 @@ public class JCSMPInboundTopicMessageProducer extends MessageProducerSupport imp
     private final String group;
     private final ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties;
     private final AtomicBoolean paused = new AtomicBoolean(false);
-    @Nullable
-    private final SolaceMeterAccessor solaceMeterAccessor;
+    private final Optional<SolaceMeterAccessor> solaceMeterAccessor;
+    private final Optional<TracingProxy> tracingProxy;
     private final ExecutorService executorService;
     private final JCSMPInboundTopicMessageMultiplexer.LivecycleHooks livecycleHooks;
     private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
@@ -39,11 +41,17 @@ public class JCSMPInboundTopicMessageProducer extends MessageProducerSupport imp
     private final AcknowledgmentCallback noop = status -> {
     };
 
-    public JCSMPInboundTopicMessageProducer(SolaceConsumerDestination consumerDestination, String group, ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties, @Nullable SolaceMeterAccessor solaceMeterAccessor, JCSMPInboundTopicMessageMultiplexer.LivecycleHooks livecycleHooks) {
+    public JCSMPInboundTopicMessageProducer(SolaceConsumerDestination consumerDestination,
+                                            String group,
+                                            ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties,
+                                            Optional<SolaceMeterAccessor> solaceMeterAccessor,
+                                            Optional<TracingProxy> tracingProxy,
+                                            JCSMPInboundTopicMessageMultiplexer.LivecycleHooks livecycleHooks) {
         this.consumerDestination = consumerDestination;
         this.group = group;
         this.consumerProperties = consumerProperties;
         this.solaceMeterAccessor = solaceMeterAccessor;
+        this.tracingProxy = tracingProxy;
         this.executorService = Executors.newFixedThreadPool(Math.max(1, consumerProperties.getConcurrency()));
         this.livecycleHooks = livecycleHooks;
     }
@@ -62,10 +70,15 @@ public class JCSMPInboundTopicMessageProducer extends MessageProducerSupport imp
                 synchronized (msg) {
                     message = xmlMessageMapper.map(msg, noop, consumerProperties.getExtension());
                 }
-                this.sendMessage(message);
-                if (solaceMeterAccessor != null) {
-                    solaceMeterAccessor.recordMessage(consumerProperties.getBindingName(), msg);
+                Consumer<Message<?>> sendToCustomerConsumer = this::sendMessage;
+                if (tracingProxy.isPresent()) {
+                    SDTMap tracingHeader = msg.getProperties().getMap(TracingProxy.TRACING_HEADER_KEY);
+                    if (tracingHeader != null) {
+                        sendToCustomerConsumer = tracingProxy.get().wrapInTracingContext(tracingHeader, sendToCustomerConsumer);
+                    }
                 }
+                sendToCustomerConsumer.accept(message);
+                solaceMeterAccessor.ifPresent(meterAccessor -> meterAccessor.recordMessage(consumerProperties.getBindingName(), msg));
             } catch (Exception ex) {
                 log.error("onReceive", ex);
             }

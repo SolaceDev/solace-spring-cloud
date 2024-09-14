@@ -3,6 +3,7 @@ package com.solace.spring.cloud.stream.binder.inbound.topic;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceConsumerDestination;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.LargeMessageSupport;
 import com.solacesystems.jcsmp.*;
 import lombok.RequiredArgsConstructor;
@@ -11,18 +12,15 @@ import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.messaging.MessagingException;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 @Slf4j
 @RequiredArgsConstructor
 public class JCSMPInboundTopicMessageMultiplexer {
     private final JCSMPSession jcsmpSession;
-    private final Supplier<SolaceMeterAccessor> solaceMeterAccessorSupplier;
+    private final Optional<SolaceMeterAccessor> solaceMeterAccessorSupplier;
+    private final Optional<TracingProxy> tracingProxy;
     private final List<JCSMPInboundTopicMessageProducer> jcsmpInboundTopicMessageProducers = new ArrayList<>();
     private final AtomicReference<XMLMessageConsumer> msgConsumer = new AtomicReference<>(null);
     private final LargeMessageSupport largeMessageSupport = new LargeMessageSupport();
@@ -144,7 +142,7 @@ public class JCSMPInboundTopicMessageMultiplexer {
 
     public JCSMPInboundTopicMessageProducer createTopicMessageProducer(ConsumerDestination destination, String group, ExtendedConsumerProperties<SolaceConsumerProperties> properties) {
         this.ensureXMLMessageConsumer();
-        return new JCSMPInboundTopicMessageProducer((SolaceConsumerDestination) destination, group, properties, this.solaceMeterAccessorSupplier.get(), livecycleHooks);
+        return new JCSMPInboundTopicMessageProducer((SolaceConsumerDestination) destination, group, properties, this.solaceMeterAccessorSupplier, tracingProxy, livecycleHooks);
     }
 
     public interface LivecycleHooks {

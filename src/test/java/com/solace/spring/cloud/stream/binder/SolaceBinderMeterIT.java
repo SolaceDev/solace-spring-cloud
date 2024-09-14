@@ -18,6 +18,7 @@ import com.solace.test.integration.junit.jupiter.extension.ExecutorServiceExtens
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;
 import com.solace.test.integration.semp.v2.config.model.ConfigMsgVpnQueueSubscription;
+import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -43,10 +44,8 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.MimeTypeUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -75,8 +74,11 @@ public class SolaceBinderMeterIT {
 
     @BeforeEach
     void setUp(@Autowired SolaceMeterAccessor solaceMeterAccessor,
-               SpringCloudStreamContext context) {
-        context.getBinder().getBinder().setSolaceMeterAccessor(solaceMeterAccessor);
+               SpringCloudStreamContext context) throws NoSuchFieldException, IllegalAccessException {
+        SolaceMessageChannelBinder binder = context.getBinder().getBinder();
+        Field solaceBinderHealthAccessorField = binder.getClass().getDeclaredField("solaceMeterAccessor");
+        solaceBinderHealthAccessorField.setAccessible(true);
+        solaceBinderHealthAccessorField.set(binder, Optional.of(solaceMeterAccessor));
     }
 
     @CartesianTest(name = "[{index}] channelType={0}")

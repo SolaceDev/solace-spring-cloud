@@ -5,6 +5,7 @@ import com.solace.spring.cloud.stream.binder.health.SolaceBinderHealthAccessor;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceEndpointProvisioner;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solacesystems.jcsmp.Context;
 import com.solacesystems.jcsmp.JCSMPSession;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.lang.Nullable;
+
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Configuration
@@ -24,13 +26,17 @@ public class SolaceMessageChannelBinderConfiguration {
     private final Context context;
 
     @Bean
-    SolaceMessageChannelBinder solaceMessageChannelBinder(SolaceEndpointProvisioner solaceEndpointProvisioner, @Nullable SolaceBinderHealthAccessor solaceBinderHealthAccessor, @Nullable SolaceMeterAccessor solaceMeterAccessor) {
-        SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession, context, solaceEndpointProvisioner);
+    SolaceMessageChannelBinder solaceMessageChannelBinder(SolaceEndpointProvisioner solaceEndpointProvisioner,
+                                                          Optional<SolaceMeterAccessor> solaceMeterAccessor,
+                                                          Optional<TracingProxy> tracingProxy,
+                                                          Optional<SolaceBinderHealthAccessor> solaceBinderHealthAccessor) {
+        SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession,
+                context,
+                solaceEndpointProvisioner,
+                solaceMeterAccessor,
+                tracingProxy,
+                solaceBinderHealthAccessor);
         binder.setExtendedBindingProperties(solaceExtendedBindingProperties);
-        binder.setSolaceMeterAccessor(solaceMeterAccessor);
-        if (solaceBinderHealthAccessor != null) {
-            binder.setSolaceBinderHealthAccessor(solaceBinderHealthAccessor);
-        }
         return binder;
     }
 }

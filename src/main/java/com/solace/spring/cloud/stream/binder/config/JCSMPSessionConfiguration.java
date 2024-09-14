@@ -89,7 +89,7 @@ public class JCSMPSessionConfiguration {
             }
             throw new RuntimeException(e);
         }
-        SolaceEndpointProvisioner solaceEndpointProvisioner = new SolaceEndpointProvisioner(jcsmpSession, jcsmpSessionEventHandler);
+        SolaceEndpointProvisioner solaceEndpointProvisioner = new SolaceEndpointProvisioner(jcsmpSession);
         return new SessionCacheEntry(properties, jcsmpSessionEventHandler, jcsmpSession, context, solaceEndpointProvisioner);
     }
 

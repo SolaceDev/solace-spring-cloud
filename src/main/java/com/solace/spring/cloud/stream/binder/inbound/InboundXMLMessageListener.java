@@ -4,6 +4,7 @@ import com.solace.spring.cloud.stream.binder.inbound.acknowledge.JCSMPAcknowledg
 import com.solace.spring.cloud.stream.binder.inbound.acknowledge.SolaceAckUtil;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
+import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.*;
 import com.solacesystems.jcsmp.*;
 import lombok.Getter;
@@ -20,6 +21,7 @@ import org.springframework.integration.support.ErrorMessageUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -34,8 +36,8 @@ abstract class InboundXMLMessageListener implements Runnable {
     private final XMLMessageMapper xmlMessageMapper;
     private final Consumer<Message<?>> messageConsumer;
     private final JCSMPAcknowledgementCallbackFactory ackCallbackFactory;
-    @Nullable
-    private final SolaceMeterAccessor solaceMeterAccessor;
+    private final Optional<SolaceMeterAccessor> solaceMeterAccessor;
+    private final Optional<TracingProxy> tracingProxy;
     private final boolean needHolder;
     private final boolean needAttributes;
     @Getter
@@ -43,13 +45,24 @@ abstract class InboundXMLMessageListener implements Runnable {
     private final Supplier<Boolean> remoteStopFlag;
     private final LargeMessageSupport largeMessageSupport = new LargeMessageSupport();
 
-    InboundXMLMessageListener(FlowReceiverContainer flowReceiverContainer, ConsumerDestination consumerDestination, ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties, Consumer<Message<?>> messageConsumer, JCSMPAcknowledgementCallbackFactory ackCallbackFactory, @Nullable SolaceMeterAccessor solaceMeterAccessor, @Nullable AtomicBoolean remoteStopFlag, ThreadLocal<AttributeAccessor> attributesHolder, boolean needHolder, boolean needAttributes) {
+    InboundXMLMessageListener(FlowReceiverContainer flowReceiverContainer,
+                              ConsumerDestination consumerDestination,
+                              ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties,
+                              Consumer<Message<?>> messageConsumer,
+                              JCSMPAcknowledgementCallbackFactory ackCallbackFactory,
+                              Optional<SolaceMeterAccessor> solaceMeterAccessor,
+                              Optional<TracingProxy> tracingProxy,
+                              @Nullable AtomicBoolean remoteStopFlag,
+                              ThreadLocal<AttributeAccessor> attributesHolder,
+                              boolean needHolder,
+                              boolean needAttributes) {
         this.flowReceiverContainer = flowReceiverContainer;
         this.consumerDestination = consumerDestination;
         this.consumerProperties = consumerProperties;
         this.messageConsumer = messageConsumer;
         this.ackCallbackFactory = ackCallbackFactory;
         this.solaceMeterAccessor = solaceMeterAccessor;
+        this.tracingProxy = tracingProxy;
         this.remoteStopFlag = () -> remoteStopFlag != null && remoteStopFlag.get();
         this.attributesHolder = attributesHolder;
         this.needHolder = needHolder;
@@ -101,8 +114,8 @@ abstract class InboundXMLMessageListener implements Runnable {
             return;
         }
 
-        if (solaceMeterAccessor != null && messageContainer != null) {
-            solaceMeterAccessor.recordMessage(consumerProperties.getBindingName(), messageContainer.getMessage());
+        if (solaceMeterAccessor.isPresent() && messageContainer != null) {
+            solaceMeterAccessor.get().recordMessage(consumerProperties.getBindingName(), messageContainer.getMessage());
         }
 
         try {
@@ -129,7 +142,15 @@ abstract class InboundXMLMessageListener implements Runnable {
 
     private void processMessage(BytesXMLMessage bytesXMLMessage, AcknowledgmentCallback acknowledgmentCallback) {
         try {
-            handleMessage(() -> createOneMessage(bytesXMLMessage, acknowledgmentCallback), m -> sendOneToConsumer(m, bytesXMLMessage), acknowledgmentCallback);
+            Supplier<Message<?>> createMessageSupplier = () -> createOneMessage(bytesXMLMessage, acknowledgmentCallback);
+            Consumer<Message<?>> sendToCustomerConsumer = m -> sendOneToConsumer(m, bytesXMLMessage);
+            if (tracingProxy.isPresent()) {
+                SDTMap tracingHeader = bytesXMLMessage.getProperties().getMap(TracingProxy.TRACING_HEADER_KEY);
+                if (tracingHeader != null) {
+                    sendToCustomerConsumer = tracingProxy.get().wrapInTracingContext(tracingHeader, sendToCustomerConsumer);
+                }
+            }
+            handleMessage(createMessageSupplier, sendToCustomerConsumer, acknowledgmentCallback);
         } catch (SolaceAcknowledgmentException e) {
             throw e;
         } catch (Exception e) {

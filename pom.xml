@@ -85,6 +85,11 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
@@ -207,6 +212,23 @@
                     <groupId>io.gsonfire</groupId>
                     <artifactId>gson-fire</artifactId>
                     <version>1.9.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>io.micrometer</groupId>
+                    <artifactId>micrometer-tracing-integration-test</artifactId>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>io.micrometer</groupId>
+                            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+                        </exclusion>
+                    </exclusions>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.wavefront</groupId>
+                    <artifactId>wavefront-sdk-java</artifactId>
+                    <version>3.4.3</version>
+                    <scope>test</scope>
                 </dependency>
             </dependencies>
             <build>
