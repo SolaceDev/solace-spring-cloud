@@ -7,6 +7,7 @@ Additional:
 - Fixed startup error with anonymous queues when broker is under load
 - Provide and cache JCSMPSessions as Bean to avoid multiple connections to the same broker
 - Support large messages up to 1.2GB with chunking (need partitioned queues if using groups)
+- Micrometer Tracing
 
 Not supported by fork on purpose:
 - Batch processing - We judge this feature as unnecessary complex and an antipattern

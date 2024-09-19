@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.0.2] - 2024-09-19
+### Added
+- Support for Micrometer Tracing
+
 ## [5.0.1] - 2024-07-29
 ### Added
 - Support for tests without excluding Autoconfig
