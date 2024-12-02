@@ -1,6 +1,10 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [5.0.3] - 2024-12-02
+### Fixed
+- Ensure subscriptions on temporary queues after reconnect
+- Fix NPE when tracing is enabled and not tracing header on the message
 
 ## [5.0.2] - 2024-09-19
 ### Added
