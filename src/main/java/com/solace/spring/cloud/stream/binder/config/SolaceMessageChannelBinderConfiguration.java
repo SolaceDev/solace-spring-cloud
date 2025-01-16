@@ -1,8 +1,8 @@
 package com.solace.spring.cloud.stream.binder.config;
 
 import com.solace.spring.cloud.stream.binder.SolaceMessageChannelBinder;
+import com.solace.spring.cloud.stream.binder.config.autoconfigure.JCSMPSessionConfiguration;
 import com.solace.spring.cloud.stream.binder.health.SolaceBinderHealthAccessor;
-import com.solace.spring.cloud.stream.binder.health.handlers.SolaceSessionEventHandler;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceEndpointProvisioner;

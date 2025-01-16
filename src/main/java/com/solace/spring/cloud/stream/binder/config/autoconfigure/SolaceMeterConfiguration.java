@@ -1,4 +1,4 @@
-package com.solace.spring.cloud.stream.binder.config;
+package com.solace.spring.cloud.stream.binder.config.autoconfigure;
 
 import com.solace.spring.cloud.stream.binder.meter.SolaceMessageMeterBinder;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;

@@ -1,4 +1,4 @@
-package com.solace.spring.cloud.stream.binder.config;
+package com.solace.spring.cloud.stream.binder.config.autoconfigure;
 
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.cloud.stream.config.BindingHandlerAdvise.MappingsProvider;

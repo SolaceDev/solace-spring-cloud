@@ -1,4 +1,4 @@
-package com.solace.spring.cloud.stream.binder.config;
+package com.solace.spring.cloud.stream.binder.config.autoconfigure;
 
 import com.solace.spring.cloud.stream.binder.tracing.TracingImpl;
 import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;

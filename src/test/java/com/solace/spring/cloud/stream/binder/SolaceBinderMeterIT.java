@@ -1,7 +1,7 @@
 package com.solace.spring.cloud.stream.binder;
 
-import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
-import com.solace.spring.cloud.stream.binder.config.SolaceMeterConfiguration;
+import com.solace.spring.cloud.stream.binder.config.autoconfigure.SolaceJavaAutoConfiguration;
+import com.solace.spring.cloud.stream.binder.config.autoconfigure.SolaceMeterConfiguration;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMessageMeterBinder;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
