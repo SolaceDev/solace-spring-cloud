@@ -298,7 +298,7 @@ public class XMLMessageMapper {
                     }
                     Object value = SerializationUtils.deserialize(serializedValue);
                     if (value instanceof ByteArray) { // Just in case...
-                        value = ((ByteArray) value).getBuffer();
+                        value = ((ByteArray) value).asBytes();
                     }
                     headers.put(headerName, value);
                 }
@@ -312,8 +312,8 @@ public class XMLMessageMapper {
             } catch (SDTException e) {
                 throw new RuntimeException(e);
             }
-            if (value instanceof ByteArray) {
-                value = ((ByteArray) value).getBuffer();
+            if (value instanceof ByteArray byteArray) {
+                value = byteArray.asBytes();
             }
             headers.put(h, value);
         });
