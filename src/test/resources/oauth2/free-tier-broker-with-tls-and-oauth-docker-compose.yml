@@ -1,5 +1,3 @@
-version: '3.5'
-
 networks:
   solace_msg_net:
     external: false

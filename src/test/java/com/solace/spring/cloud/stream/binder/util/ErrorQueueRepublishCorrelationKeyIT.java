@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder.util;
 
-import com.solace.spring.cloud.stream.binder.config.autoconfigure.SolaceJavaAutoConfiguration;
+import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;

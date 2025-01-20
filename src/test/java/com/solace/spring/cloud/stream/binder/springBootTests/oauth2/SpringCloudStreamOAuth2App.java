@@ -34,7 +34,6 @@ public class SpringCloudStreamOAuth2App {
     http.authorizeHttpRequests(requests -> requests
         .requestMatchers(new AntPathRequestMatcher("/actuator/*")).permitAll()
         .anyRequest().authenticated());
-
     return http.build();
   }
 }

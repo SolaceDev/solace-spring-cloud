@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder;
 
-import com.solace.spring.cloud.stream.binder.config.autoconfigure.SolaceJavaAutoConfiguration;
+import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceHeaders;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.test.junit.extension.SpringCloudStreamExtension;
@@ -284,7 +284,7 @@ public class SolaceBinderClientAckIT<T> {
         Binding<T> consumerBinding = consumerInfrastructureUtil.createBinding(binder, destination0,
                 RandomStringUtils.randomAlphanumeric(10), moduleInputChannel, consumerProperties);
 
-        List<Message<?>> messages = IntStream.range(0,1)
+        List<Message<?>> messages = IntStream.range(0, 1)
                 .mapToObj(i -> MessageBuilder.withPayload(UUID.randomUUID().toString().getBytes())
                         .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
                         .build())
@@ -452,7 +452,7 @@ public class SolaceBinderClientAckIT<T> {
         Binding<T> consumerBinding = consumerInfrastructureUtil.createBinding(binder, destination0,
                 RandomStringUtils.randomAlphanumeric(10), moduleInputChannel, consumerProperties);
 
-        List<Message<?>> messages = IntStream.range(0,1)
+        List<Message<?>> messages = IntStream.range(0, 1)
                 .mapToObj(i -> MessageBuilder.withPayload(UUID.randomUUID().toString().getBytes())
                         .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
                         .build())

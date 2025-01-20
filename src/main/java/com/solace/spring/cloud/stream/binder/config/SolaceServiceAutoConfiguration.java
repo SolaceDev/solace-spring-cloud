@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder.config;
 
-import com.solace.spring.cloud.stream.binder.config.autoconfigure.SolaceJavaAutoConfiguration;
+import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cloud.stream.binder.Binder;
 import org.springframework.context.annotation.Configuration;

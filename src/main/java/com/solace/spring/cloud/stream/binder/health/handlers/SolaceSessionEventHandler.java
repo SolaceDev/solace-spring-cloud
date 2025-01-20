@@ -1,11 +1,10 @@
 package com.solace.spring.cloud.stream.binder.health.handlers;
 
 import com.solace.spring.cloud.stream.binder.health.indicators.SessionHealthIndicator;
-import com.solace.spring.cloud.stream.binder.oauth.DefaultSolaceOAuth2SessionEventHandler;
-import com.solace.spring.cloud.stream.binder.oauth.SolaceSessionOAuth2TokenProvider;
+import com.solacesystems.jcsmp.DefaultSolaceOAuth2SessionEventHandler;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.SessionEventArgs;
-import lombok.RequiredArgsConstructor;
+import com.solacesystems.jcsmp.SolaceSessionOAuth2TokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 

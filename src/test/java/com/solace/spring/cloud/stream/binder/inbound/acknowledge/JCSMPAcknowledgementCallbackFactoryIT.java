@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder.inbound.acknowledge;
 
-import com.solace.spring.cloud.stream.binder.config.autoconfigure.SolaceJavaAutoConfiguration;
+import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.util.*;
 import com.solace.test.integration.junit.jupiter.extension.ExecutorServiceExtension;
@@ -502,11 +502,6 @@ public class JCSMPAcknowledgementCallbackFactoryIT {
             assertThat(exception)
                     .describedAs("Unexpected root cause for %s re-ack", status)
                     .hasRootCauseInstanceOf(expectedRootCause);
-            if (exception instanceof SolaceBatchAcknowledgementException) {
-                assertThat((SolaceBatchAcknowledgementException) exception)
-                        .describedAs("Unexpected stale batch state for %s re-ack", status)
-                        .hasRootCauseInstanceOf(expectedRootCause);
-            }
         });
 
         if (isDurable) {

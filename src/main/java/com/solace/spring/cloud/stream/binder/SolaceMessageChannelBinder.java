@@ -1,7 +1,6 @@
 package com.solace.spring.cloud.stream.binder;
 
 import com.solace.spring.cloud.stream.binder.health.SolaceBinderHealthAccessor;
-import com.solace.spring.cloud.stream.binder.health.handlers.SolaceSessionEventHandler;
 import com.solace.spring.cloud.stream.binder.inbound.JCSMPInboundQueueMessageProducer;
 import com.solace.spring.cloud.stream.binder.inbound.topic.JCSMPInboundTopicMessageMultiplexer;
 import com.solace.spring.cloud.stream.binder.inbound.topic.JCSMPInboundTopicMessageProducer;
@@ -80,10 +79,16 @@ public class SolaceMessageChannelBinder
 
     @Override
     public void destroy() {
-        log.info(String.format("Closing JCSMP session %s", jcsmpSession.getSessionName()));
-        sessionProducerManager.release(errorHandlerProducerKey);
+        if (jcsmpSession != null) {
+            log.info("Closing JCSMP session {}", jcsmpSession.getSessionName());
+        }
+        if (sessionProducerManager != null) {
+            sessionProducerManager.release(errorHandlerProducerKey);
+        }
         consumersRemoteStopFlag.set(true);
-        jcsmpSession.closeSession();
+        if (jcsmpSession != null) {
+            jcsmpSession.closeSession();
+        }
         if (jcsmpContext != null) {
             jcsmpContext.destroy();
         }

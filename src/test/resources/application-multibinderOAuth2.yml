@@ -74,6 +74,8 @@ spring:
 #            provision-durable-queue: false
 #          producer:
 #            provision-durable-queue: false
+  main:
+    allow-bean-definition-overriding: true
 
 management:
   endpoint:
@@ -87,3 +89,6 @@ management:
   health:
     binders:
       enabled: true
+solace:
+  java:
+    host:

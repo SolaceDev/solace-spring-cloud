@@ -5,9 +5,9 @@ import com.solace.spring.cloud.stream.binder.health.contributors.BindingsHealthC
 import com.solace.spring.cloud.stream.binder.health.contributors.SolaceBinderHealthContributor;
 import com.solace.spring.cloud.stream.binder.health.handlers.SolaceSessionEventHandler;
 import com.solace.spring.cloud.stream.binder.health.indicators.SessionHealthIndicator;
-import com.solace.spring.cloud.stream.binder.oauth.SolaceSessionOAuth2TokenProvider;
 import com.solace.spring.cloud.stream.binder.properties.SolaceSessionHealthProperties;
 import com.solacesystems.jcsmp.JCSMPProperties;
+import com.solacesystems.jcsmp.SolaceSessionOAuth2TokenProvider;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator;

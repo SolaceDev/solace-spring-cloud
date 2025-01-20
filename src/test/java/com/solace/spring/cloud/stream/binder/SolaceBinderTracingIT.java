@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder;
 
-import com.solace.spring.cloud.stream.binder.config.autoconfigure.SolaceJavaAutoConfiguration;
+import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.config.autoconfigure.SolaceTracerConfiguration;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.tracing.OpenTelemetryAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.tracing.OpenTelemetryTracingAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.cloud.stream.binder.BinderHeaders;
@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for tracing propagation.
  */
 @SpringJUnitConfig(classes = {SolaceJavaAutoConfiguration.class,
-        OpenTelemetryAutoConfiguration.class,
+        OpenTelemetryTracingAutoConfiguration.class,
         org.springframework.boot.actuate.autoconfigure.opentelemetry.OpenTelemetryAutoConfiguration.class},
         initializers = ConfigDataApplicationContextInitializer.class)
 @ExtendWith(PubSubPlusExtension.class)

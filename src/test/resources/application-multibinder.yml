@@ -26,6 +26,9 @@ spring:
           group: myConsumerGroup
           binder: solace2
       default-binder: solace1
+  main:
+    allow-bean-definition-overriding: true
+
 management:
   endpoint:
     health:
@@ -38,3 +41,6 @@ management:
   health:
     binders:
       enabled: true
+solace:
+  java:
+    host:

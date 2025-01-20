@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -39,7 +38,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("multibinderOAuth2")
 @DirtiesContext //Ensures all listeners are stopped
@@ -60,9 +59,9 @@ class MultiBinderOAuth2IT implements
 
     @DynamicPropertySource
     static void registerDynamicProperties(DynamicPropertyRegistry registry) {
+        registry.add("solace.java.host", () -> null); // avoid default config to load on connect
         String solaceHost = COMPOSE_CONTAINER.getServiceHost(PUBSUB_BROKER_SERVICE_NAME, 55443);
         int solaceSecureSMFPort = COMPOSE_CONTAINER.getServicePort(PUBSUB_BROKER_SERVICE_NAME, 55443);
-        COMPOSE_CONTAINER.getServicePort(PUBSUB_BROKER_SERVICE_NAME, 55443);
         registry.add("spring.cloud.stream.binders.solace1.environment.solace.java.host",
                 () -> String.format("tcps://%s:%s", solaceHost, solaceSecureSMFPort));
         registry.add("spring.cloud.stream.binders.solace2.environment.solace.java.host",

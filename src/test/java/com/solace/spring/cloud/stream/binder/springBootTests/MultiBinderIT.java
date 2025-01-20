@@ -1,6 +1,5 @@
 package com.solace.spring.cloud.stream.binder.springBootTests;
 
-import com.solace.spring.cloud.stream.binder.config.autoconfigure.JCSMPSessionConfiguration;
 import com.solace.test.integration.testcontainer.PubSubPlusContainer;
 import com.solacesystems.jcsmp.*;
 import org.hamcrest.Matchers;
@@ -8,7 +7,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
@@ -29,7 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @Isolated
 @SpringBootTest
-@EnableAutoConfiguration(exclude = JCSMPSessionConfiguration.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("multibinder")
 @DirtiesContext //Ensures all listeners are stopped
@@ -71,6 +68,7 @@ public class MultiBinderIT {
 
     @DynamicPropertySource
     static void registerPgProperties(DynamicPropertyRegistry registry) {
+        registry.add("solace.java.host", () -> null); // avoid default config to load on connect
         registry.add("spring.cloud.stream.binders.solace1.environment.solace.java.host",
                 () -> String.format("tcp://%s:%d", container.getHost(), container.getMappedPort(55555)));
         registry.add("spring.cloud.stream.binders.solace2.environment.solace.java.host",
