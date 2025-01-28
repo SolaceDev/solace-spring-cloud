@@ -1,6 +1,18 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [5.0.5] - 2024-12-02
+### Updated
+- spring boot to 3.4.2
+- spring cloud to 2024.0.0
+
+### Fixed
+- (solace/merged) DATAGO-69335: Fix for header having value of type byte[] or ByteArray (#338)
+- (solace/merged) DATAGO-68275: fix SolaceErrorMessageHandler acknowledgmentCallback detection and error handling (#331)
+- (solace/merged) DATAGO-82456: fix queueAdditionalSubscriptions when addDestinationAsSubscription=false (#325)
+- (solace/merged) OAuth2 Login
+
 ## [5.0.3] - 2024-12-02
 ### Fixed
 - Ensure subscriptions on temporary queues after reconnect
