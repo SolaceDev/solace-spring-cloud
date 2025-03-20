@@ -8,6 +8,8 @@ import com.solace.spring.cloud.stream.binder.tracing.TracingProxy;
 import com.solace.spring.cloud.stream.binder.util.*;
 import com.solace.spring.cloud.stream.binder.util.JCSMPSessionProducerManager.CloudStreamEventHandler;
 import com.solacesystems.jcsmp.*;
+import com.solacesystems.jcsmp.impl.JCSMPXMLMessageProducer;
+import com.solacesystems.jcsmp.impl.PubADManager;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -182,6 +184,15 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
             } else {
                 producer = jcsmpSession.createProducer(SolaceProvisioningUtil.getProducerFlowProperties(jcsmpSession),
                         producerEventHandler);
+            }
+            if (producer instanceof JCSMPXMLMessageProducer jcsmpxmlMessageProducer) {
+                PubADManager pubADManager = jcsmpxmlMessageProducer.getPubADManager();
+                if (pubADManager != null) {
+                    // 0x1FFFFF = 2097151 = 000111111111111111111111 remove everything above 21 bit since solace somehow add a bit there
+                    // Masking higher bits to display flowId similar to the Solace broker UI and log format
+                    long flowId = pubADManager.getFlowId() & 0x1FFFFF;
+                    log.info("created producer for binding={} flowId={} destination={} deliveryMode={}", properties.getBindingName(), flowId, configDestination.getName(), properties.getExtension().getDeliveryMode());
+                }
             }
         } catch (Exception e) {
             String msg = String.format("Unable to get a message producer for session %s", jcsmpSession.getSessionName());
