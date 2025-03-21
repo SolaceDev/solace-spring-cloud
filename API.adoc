@@ -923,6 +923,8 @@ See https://docs.solace.com/Messaging/Guaranteed-Msg/Queues.htm#partitioned-queu
 
 == Manual Message Acknowledgment Only work with qualityOfService: AT_LEAST_ONCE (Default)
 
+TIP: If you want to requeue a message on the Broker you can throw a `RequeueCurrentMessageException` in auto acknowledge mode and the message will be requeued.
+
 Message handlers can disable auto-acknowledgement and manually invoke the acknowledgement callback as follows:
 
 [source,java]
