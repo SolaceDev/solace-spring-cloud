@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 
 
+## [5.0.8] - 2025-04-15
+### Feature
+- meter for local queue and active processing
+
+### Fixed
+- exclude Source Data and Acknowledgement callback headers for producer
+- backpressure but blocking the solace dispatcher thread
+
+### Changed
+- One flow per binding, multiple threads if concurrency is set, push from jcsmp library instead of polling
+- Updated Libraries
+
 ## [5.0.7] - 2025-03-21
 ### Added
 - logging of flowId on consumer and producer
