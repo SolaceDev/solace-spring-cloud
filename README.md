@@ -58,7 +58,7 @@ Check out the difference between this fork and the original solace spring cloud 
     <dependency>
         <groupId>ch.sbb</groupId>
         <artifactId>spring-cloud-stream-binder-solace</artifactId>
-        <version>5.0.8</version>
+        <version>5.0.10</version>
     </dependency>
 </dependencies>
 ```
