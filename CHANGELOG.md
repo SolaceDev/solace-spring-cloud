@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 
+## [6.0.0] - 2025-06-15
+### Changed
+- **MAJOR VERSION UPGRADE**: Created a major release due to Spring Boot update which may introduce breaking changes
+- Updated Spring Boot to 3.5.3 from 3.4.5
+- Updated spring-boot-maven-plugin to 3.5.3
+- Updated spring-cloud.version to 2025.0.0
+- Updated sol-jcsmp to 10.27.2
+- Updated solace-java-spring-boot-autoconfigure to 5.4.0
+- Updated jakarta.annotation-api to 3.0.0
+- Updated maven-gpg-plugin to 3.2.7
+- Updated toxiproxy to 1.21.3
+- Updated swagger-annotations, swagger-core, and swagger-models to 2.2.30
+- Updated gson to 2.13.1
+- Updated swagger-codegen-maven-plugin to 3.0.69
+- Updated build-helper-maven-plugin to 3.6.1
+- Updated maven-failsafe-plugin to 3.5.3
+
+
 
 
 ## [5.0.10] - 2025-05-26
