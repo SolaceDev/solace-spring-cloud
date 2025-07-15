@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 
 
+## [6.0.1] - 2025-06-16
+### Fixed
+- Improved restart/reconnection reliability with proper null checks and cleanup in flow receiver handling
+- Enhanced flow receiver lifecycle management to ensure clean restarts
+
+### Changed
+- Increased default maxProcessingTimeMs from 1000ms to 2000ms
+- Replaced the log.error with a log.warn
+
+### Added
+- New integration test for binder restart functionality (SolaceBinderRestartIT)
+
 ## [6.0.0] - 2025-06-15
 ### Changed
 - **MAJOR VERSION UPGRADE**: Created a major release due to Spring Boot update which may introduce breaking changes
