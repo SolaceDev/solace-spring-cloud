@@ -1,5 +1,5 @@
 = Spring Cloud Stream Binder for Solace PubSub+
-:revnumber: 4.2.1
+:revnumber: 6.0.1
 :toc: preamble
 :toclevels: 3
 :icons: font
@@ -372,8 +372,9 @@ Default: `AT_LEAST_ONCE`
 
 maxProcessingTimeMs::
 Time in milliseconds till a long running consumer is logged as warning.
+After 10*maxProcessingTimeMs another warning is logged.
 +
-Default: `1000`
+Default: `2000`
 
 ==== Solace Producer Properties
 
@@ -1026,6 +1027,7 @@ So you should attach that information to your message payload if you want to get
 .Dynamic Producer Destinations with StreamBridge
 [NOTE]
 ====
+
 This binder does not support the usage of https://docs.spring.io/spring-cloud-stream/docs/current/reference/html/spring-cloud-stream.html#_streambridge_and_dynamic_destinations[StreamBridge's dynamic destination feature], which automatically creates and caches unknown output bindings on-the-fly.
 
 Instead, set the `scst_targetDestination` message header and send the message to a pre-defined output binding:
@@ -1048,6 +1050,7 @@ spring.cloud.stream.output-bindings=some-pre-defined-output-binding
 ----
 
 For more info, see https://docs.spring.io/spring-cloud-stream/docs/current/reference/html/spring-cloud-stream.html#_sending_arbitrary_data_to_an_output_e_g_foreign_event_driven_sources[Sending arbitrary data to an output (e.g. Foreign event-driven sources)].
+
 ====
 
 == Failed Consumer Message Error Handling
@@ -1117,6 +1120,7 @@ public Function<Message<SDTMap>, Message<SDTMap>> transform() {
     };
 }
 ----
+
 <1> Here, this example only invokes this if-statement if the `SDTMap` payload does not contain the key `"new-key"`.
 +
 If the consumer binding was configured with `maxAttempts > 1`, then on the following reprocessing attempts, the payload will still contain the key `"new-key"` from the previous attempt.
@@ -1228,7 +1232,8 @@ This is the total size of the messages received (if `name` is a consumer binding
 
 == Micometer Tracing
 
-The binder supports micrometer tracing. To enable ensure the needed Beans are available: Tracer and Propagator.
+The binder supports micrometer tracing.
+To enable ensure the needed Beans are available: Tracer and Propagator.
 
 == Resources
 
