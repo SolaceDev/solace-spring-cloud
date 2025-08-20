@@ -10,6 +10,7 @@ import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaderMeta;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceHeaderMeta;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceHeaders;
+import com.solace.spring.cloud.stream.binder.properties.SmfMessageReaderProperties;
 import com.solace.spring.cloud.stream.binder.properties.SmfMessageWriterProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
@@ -1609,7 +1610,8 @@ public class XMLMessageMapperTest {
 		List<String> serializedHeaders = Arrays.asList(key, key);
 		sdtMap.putString(SolaceBinderHeaders.SERIALIZED_HEADERS, objectWriter.writeValueAsString(serializedHeaders));
 
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, List.of());
+		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap,
+				new SmfMessageReaderProperties(new SolaceConsumerProperties()));
 
 		assertThat(messageHeaders.keySet(), hasItem(key));
 		assertThat(messageHeaders.keySet(), not(hasItem(SolaceBinderHeaders.SERIALIZED_HEADERS)));
@@ -1623,25 +1625,11 @@ public class XMLMessageMapperTest {
 		SDTMap sdtMap = JCSMPFactory.onlyInstance().createMap();
 		sdtMap.putObject(key, null);
 
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, List.of());
+		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap,
+				new SmfMessageReaderProperties(new SolaceConsumerProperties()));
 
 		assertThat(messageHeaders.keySet(), hasItem(key));
 		assertNull(messageHeaders.get(key));
-	}
-
-	@Test
-	void testMapSDTMapToMessageHeaders_WithNullExcludedHeader() throws Exception {
-		SDTMap sdtMap = JCSMPFactory.onlyInstance().createMap();
-		for (int i = 0; i < 10; i++) {
-			sdtMap.putObject("headerKey" + i, UUID.randomUUID().toString());
-		}
-
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, null);
-
-		for (int i = 0; i < 10; i++) {
-			String key = "headerKey" + i;
-			assertEquals(sdtMap.get(key), messageHeaders.get(key));
-		}
 	}
 
 	@ParameterizedTest(name = "[{index}] batchMode={0}")
@@ -1694,7 +1682,10 @@ public class XMLMessageMapperTest {
 		}
 
 		List<String> excludedHeaders = List.of("headerKey1", "headerKey2", "headerKey5");
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, excludedHeaders);
+		SolaceConsumerProperties solaceConsumerProperties = new SolaceConsumerProperties();
+		solaceConsumerProperties.setHeaderExclusions(excludedHeaders);
+		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap,
+				new SmfMessageReaderProperties(solaceConsumerProperties));
 
 		for (int i = 0; i < 10; i++) {
 			String key = "headerKey" + i;
@@ -1714,7 +1705,10 @@ public class XMLMessageMapperTest {
 		sdtMap.putObject("retainedHeader", "test");
 
 		List<String> excludedHeaders = List.of(SolaceBinderHeaders.MESSAGE_VERSION, SolaceBinderHeaders.SERIALIZED_HEADERS);
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, excludedHeaders);
+		SolaceConsumerProperties solaceConsumerProperties = new SolaceConsumerProperties();
+		solaceConsumerProperties.setHeaderExclusions(excludedHeaders);
+		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap,
+				new SmfMessageReaderProperties(solaceConsumerProperties));
 
 		sdtMap.keySet().forEach(key -> {
 			if (excludedHeaders.contains(key)) {
@@ -1739,7 +1733,8 @@ public class XMLMessageMapperTest {
 		sdtMap.putString(SolaceBinderHeaders.SERIALIZED_HEADERS, objectWriter.writeValueAsString(serializedHeaders));
 		sdtMap.putString(SolaceBinderHeaders.SERIALIZED_HEADERS_ENCODING, "base64");
 
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, List.of());
+		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap,
+				new SmfMessageReaderProperties(new SolaceConsumerProperties()));
 
 		assertThat(messageHeaders.keySet(), hasItem(key));
 		assertThat(messageHeaders.keySet(), not(hasItem(SolaceBinderHeaders.SERIALIZED_HEADERS)));
@@ -1754,7 +1749,8 @@ public class XMLMessageMapperTest {
 		Set<String> serializedHeaders = Collections.singleton(key);
 		sdtMap.putString(SolaceBinderHeaders.SERIALIZED_HEADERS, objectWriter.writeValueAsString(serializedHeaders));
 
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, List.of());
+		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap,
+				new SmfMessageReaderProperties(new SolaceConsumerProperties()));
 
 		assertThat(messageHeaders.keySet(), not(hasItem(key)));
 		assertThat(messageHeaders.keySet(), not(hasItem(SolaceBinderHeaders.SERIALIZED_HEADERS)));
@@ -1769,7 +1765,8 @@ public class XMLMessageMapperTest {
 		sdtMap.putString(SolaceBinderHeaders.SERIALIZED_HEADERS, objectWriter.writeValueAsString(serializedHeaders));
 		sdtMap.putString(SolaceBinderHeaders.SERIALIZED_HEADERS_ENCODING, "base64");
 
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, List.of());
+		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap,
+				new SmfMessageReaderProperties(new SolaceConsumerProperties()));
 
 		assertThat(messageHeaders.keySet(), hasItem(key));
 		assertNull(messageHeaders.get(key));
@@ -1787,7 +1784,7 @@ public class XMLMessageMapperTest {
 		sdtMap.putString(SolaceBinderHeaders.SERIALIZED_HEADERS_ENCODING, "abc");
 
 		SolaceMessageConversionException exception = assertThrows(SolaceMessageConversionException.class,
-				() -> xmlMessageMapper.mapHeadersToSpring(sdtMap, List.of()));
+				() -> xmlMessageMapper.mapHeadersToSpring(sdtMap, new SmfMessageReaderProperties(new SolaceConsumerProperties())));
 		assertThat(exception.getMessage(), containsString("encoding is not supported"));
 	}
 
@@ -1799,7 +1796,8 @@ public class XMLMessageMapperTest {
 			sdtMap.putBytes(header, value);
 		}
 
-		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap, List.of());
+		MessageHeaders messageHeaders = xmlMessageMapper.mapHeadersToSpring(sdtMap,
+				new SmfMessageReaderProperties(new SolaceConsumerProperties()));
 
 		for (String header : JMS_INVALID_HEADER_NAMES) {
 			assertThat(messageHeaders.keySet(), hasItem(header));
