@@ -106,8 +106,10 @@ public class XMLMessageMapper {
 				LOGGER.warn("Duplicate mapping: multiple headers map to user property '{}'.", targetKey);
 				continue;
 			}
-			result.put(targetKey, result.get(sourceKey));
-			mappedTargetKeys.add(targetKey);
+      if (result.containsKey(sourceKey)) {
+        result.put(targetKey, result.get(sourceKey));
+        mappedTargetKeys.add(targetKey);
+      }
 		}
 		return Collections.unmodifiableMap(result);
 	}

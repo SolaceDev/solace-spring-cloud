@@ -6,6 +6,7 @@ import com.solace.spring.cloud.stream.binder.util.SmfMessagePayloadWriteCompatib
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class SmfMessageWriterProperties {
@@ -20,7 +21,7 @@ public class SmfMessageWriterProperties {
 		this.headerTypeCompatibility = solaceProducerProperties.getHeaderTypeCompatibility();
 		this.payloadTypeCompatibility = solaceProducerProperties.getPayloadTypeCompatibility();
 		this.nonSerializableHeaderConvertToString = solaceProducerProperties.isNonserializableHeaderConvertToString();
-		this.headerToUserPropertyKeyMapping = new LinkedHashMap<>(solaceProducerProperties.getHeaderToUserPropertyKeyMapping());
+		this.headerToUserPropertyKeyMapping = new LinkedHashMap<>(Objects.requireNonNullElse(solaceProducerProperties.getHeaderToUserPropertyKeyMapping(), Map.of()));
 	}
 
 	public Set<String> getHeaderExclusions() {
