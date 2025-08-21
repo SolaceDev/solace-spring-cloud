@@ -886,8 +886,9 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
-		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
-		Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, consumerProperties);
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
+		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
+		Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, smfMessageReaderProperties);
 
 		validateSpringPayload(springMessage.getPayload(), expectedPayload);
 		validateSpringHeaders(springMessage.getHeaders(), xmlMessage);
@@ -917,8 +918,9 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
-		Message<List<?>> springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, consumerProperties);
-		Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, consumerProperties);
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
+		Message<List<?>> springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, smfMessageReaderProperties);
+		Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, smfMessageReaderProperties);
 
 		validateSpringBatchPayload(springMessage.getPayload(), expectedPayloads);
 		validateSpringBatchHeaders(springMessage.getHeaders(), xmlMessages);
@@ -942,7 +944,8 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
-		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, true, consumerProperties);
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
+		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, true, smfMessageReaderProperties);
 
 		validateSpringPayload(springMessage.getPayload(), expectedPayload);
 		validateSpringHeaders(springMessage.getHeaders(), xmlMessage);
@@ -972,7 +975,8 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
-		Message<List<?>> springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, true, consumerProperties);
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
+		Message<List<?>> springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, true, smfMessageReaderProperties);
 
 		validateSpringBatchPayload(springMessage.getPayload(), expectedPayloads);
 		validateSpringBatchHeaders(springMessage.getHeaders(), xmlMessages);
@@ -1003,19 +1007,20 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 		Message<?> springMessage;
 		MessageHeaders springMessageHeaders;
 		if (batchMode) {
 			List<MT> xmlMessages = Collections.singletonList(xmlMessage);
-			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, consumerProperties);
-			Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, consumerProperties);
+			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, smfMessageReaderProperties);
+			Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, smfMessageReaderProperties);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> messageHeaders = (Map<String, Object>) Objects.requireNonNull(springMessage.getHeaders()
 					.get(SolaceBinderHeaders.BATCHED_HEADERS, List.class)).get(0);
 			springMessageHeaders = new MessageHeaders(messageHeaders);
 		} else {
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
-			Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
+			Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, smfMessageReaderProperties);
 			springMessageHeaders = springMessage.getHeaders();
 		}
 
@@ -1124,20 +1129,21 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 		Message<?> springMessage;
 		MessageHeaders springMessageHeaders;
 		if (batchMode) {
 			List<TextMessage> xmlMessages = Collections.singletonList(xmlMessage);
-			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, consumerProperties);
-			Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, consumerProperties);
+			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, smfMessageReaderProperties);
+			Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, smfMessageReaderProperties);
 
 			@SuppressWarnings("unchecked")
 			Map<String, Object> messageHeaders = (Map<String, Object>) Objects.requireNonNull(springMessage.getHeaders()
 							.get(SolaceBinderHeaders.BATCHED_HEADERS, List.class)).get(0);
 			springMessageHeaders = new MessageHeaders(messageHeaders);
 		} else {
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
-			Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
+			Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, smfMessageReaderProperties);
 			springMessageHeaders = springMessage.getHeaders();
 		}
 
@@ -1270,21 +1276,22 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
 		Message<?> springMessage;
 		MessageHeaders springMessageHeaders;
 		if (batchMode) {
 			List<TextMessage> xmlMessages = Collections.singletonList(xmlMessage);
-			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, consumerProperties);
-			Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, consumerProperties);
+			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, smfMessageReaderProperties);
+			Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, smfMessageReaderProperties);
 
 			@SuppressWarnings("unchecked")
 			Map<String, Object> messageHeaders = (Map<String, Object>) Objects.requireNonNull(springMessage.getHeaders()
 					.get(SolaceBinderHeaders.BATCHED_HEADERS, List.class)).get(0);
 			springMessageHeaders = new MessageHeaders(messageHeaders);
 		} else {
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
-			Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
+			Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, smfMessageReaderProperties);
 			springMessageHeaders = springMessage.getHeaders();
 		}
 
@@ -1334,21 +1341,22 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
 		Message<?> springMessage;
 		MessageHeaders springMessageHeaders;
 		if (batchMode) {
 			List<TextMessage> xmlMessages = Collections.singletonList(xmlMessage);
-			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, consumerProperties);
-			Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, consumerProperties);
+			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, smfMessageReaderProperties);
+			Mockito.verify(xmlMessageMapper).mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, smfMessageReaderProperties);
 
 			@SuppressWarnings("unchecked")
 			Map<String, Object> messageHeaders = (Map<String, Object>) Objects.requireNonNull(springMessage.getHeaders()
 					.get(SolaceBinderHeaders.BATCHED_HEADERS, List.class)).get(0);
 			springMessageHeaders = new MessageHeaders(messageHeaders);
 		} else {
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
-			Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
+			Mockito.verify(xmlMessageMapper).mapToSpring(xmlMessage, acknowledgmentCallback, false, smfMessageReaderProperties);
 			springMessageHeaders = springMessage.getHeaders();
 		}
 
@@ -1389,16 +1397,17 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 		MapAssert<String, Object> headersAssert;
 		if (batchMode) {
 			headersAssert = Assertions.assertThat(Objects.requireNonNull(xmlMessageMapper
-									.mapBatchedToSpring(Collections.singletonList(xmlMessage), acknowledgmentCallback, consumerProperties)
+									.mapBatchedToSpring(Collections.singletonList(xmlMessage), acknowledgmentCallback, smfMessageReaderProperties)
 									.getHeaders()
 					.get(SolaceBinderHeaders.BATCHED_HEADERS, List.class))
 					.get(0))
 					.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class));
 		} else {
-			headersAssert = Assertions.assertThat(xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties)
+			headersAssert = Assertions.assertThat(xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties)
 					.getHeaders());
 		}
 		headersAssert.extractingByKey(SolaceHeaders.DELIVERY_COUNT).isEqualTo(deliveryCount);
@@ -1421,18 +1430,19 @@ public class XMLMessageMapperTest {
 
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
 		Message<?> springMessage;
 		MessageHeaders springMessageHeaders;
 		if (batchMode) {
 			List<TextMessage> xmlMessages = Collections.singletonList(xmlMessage);
-			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, consumerProperties);
+			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, smfMessageReaderProperties);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> messageHeaders = (Map<String, Object>) Objects.requireNonNull(springMessage.getHeaders()
 					.get(SolaceBinderHeaders.BATCHED_HEADERS, List.class)).get(0);
 			springMessageHeaders = new MessageHeaders(messageHeaders);
 		} else {
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
 			springMessageHeaders = springMessage.getHeaders();
 		}
 
@@ -1452,18 +1462,19 @@ public class XMLMessageMapperTest {
 		BytesMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
 		Message<?> springMessage;
 		MessageHeaders springMessageHeaders;
 		if (batchMode) {
 			List<BytesMessage> xmlMessages = Collections.singletonList(xmlMessage);
-			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, consumerProperties);
+			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, smfMessageReaderProperties);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> messageHeaders = (Map<String, Object>) Objects.requireNonNull(springMessage.getHeaders()
 					.get(SolaceBinderHeaders.BATCHED_HEADERS, List.class)).get(0);
 			springMessageHeaders = new MessageHeaders(messageHeaders);
 		} else {
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
 			springMessageHeaders = springMessage.getHeaders();
 		}
 
@@ -1480,8 +1491,9 @@ public class XMLMessageMapperTest {
 		xmlMessage.writeBytes(payload); // Write Payload as XML Attachment
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
-		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
+		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
 		MessageHeaders springMessageHeaders = springMessage.getHeaders();
 
 		assertNull(springMessageHeaders.get(SolaceBinderHeaders.NULL_PAYLOAD, Boolean.class));
@@ -1505,13 +1517,14 @@ public class XMLMessageMapperTest {
 		xmlMessage.setProperties(metadata);
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
 		Message<?> springMessage;
 		if (batchMode) {
 			springMessage = xmlMessageMapper.mapBatchedToSpring(Collections.singletonList(xmlMessage),
-					acknowledgmentCallback, consumerProperties);
+					acknowledgmentCallback, smfMessageReaderProperties);
 		} else {
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
 		}
 
 		if (batchMode) {
@@ -1648,6 +1661,7 @@ public class XMLMessageMapperTest {
 		AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
 		consumerProperties.setHeaderExclusions(excludedHeaders);
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
 		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
 		Mockito.when(xmlMessage.getProperties()).thenReturn(metadata);
@@ -1659,13 +1673,13 @@ public class XMLMessageMapperTest {
 		MessageHeaders springMessageHeaders;
 		if (batchMode) {
 			List<BytesMessage> xmlMessages = Collections.singletonList(xmlMessage);
-			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, consumerProperties);
+			springMessage = xmlMessageMapper.mapBatchedToSpring(xmlMessages, acknowledgmentCallback, smfMessageReaderProperties);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> messageHeaders = (Map<String, Object>) Objects.requireNonNull(springMessage.getHeaders()
 					.get(SolaceBinderHeaders.BATCHED_HEADERS, List.class)).get(0);
 			springMessageHeaders = new MessageHeaders(messageHeaders);
 		} else {
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
 			springMessageHeaders = springMessage.getHeaders();
 		}
 
@@ -1829,6 +1843,7 @@ public class XMLMessageMapperTest {
 		expectedXmlMessage.setHTTPContentType(MimeTypeUtils.TEXT_PLAIN_VALUE);
 
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 		Message<?> springMessage = expectedSpringMessage;
 		XMLMessage xmlMessage;
 		int i = 0;
@@ -1841,7 +1856,7 @@ public class XMLMessageMapperTest {
 
 			LOGGER.info("Iteration {} - XMLMessage to Message<?>:\n{}", i, xmlMessage);
 			AcknowledgmentCallback acknowledgmentCallback = Mockito.mock(AcknowledgmentCallback.class);
-			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, consumerProperties);
+			springMessage = xmlMessageMapper.mapToSpring(xmlMessage, acknowledgmentCallback, smfMessageReaderProperties);
 			validateSpringHeaders(springMessage.getHeaders(), expectedXmlMessage);
 
 			// Update the expected default spring headers
@@ -2357,8 +2372,9 @@ public class XMLMessageMapperTest {
 
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
 		consumerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
-		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null, consumerProperties);
+		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null, smfMessageReaderProperties);
 
 		assertEquals("12345", springMessage.getHeaders().get("mapped-id-header"));
 		assertEquals("2025-01-01T00:00:00Z", springMessage.getHeaders().get("mapped-timestamp-header"));
@@ -2390,8 +2406,9 @@ public class XMLMessageMapperTest {
 
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
 		consumerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
-		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null, consumerProperties);
+		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null, smfMessageReaderProperties);
 
 		assertEquals("2025-01-01T00:00:00Z", springMessage.getHeaders().get("mapped-timestamp-header"));
 
@@ -2433,15 +2450,17 @@ public class XMLMessageMapperTest {
 	@ParameterizedTest(name = "{index} testApplyHeaderKeyMapping_ConsumerBackwardCompatibility - {1}")
 	@MethodSource("consumerBackwardCompatibilityArguments")
 	void testApplyHeaderKeyMapping_ConsumerBackwardCompatibility(
-			SolaceConsumerProperties solaceConsumerProperties, String scenario) throws SDTException {
+			SolaceConsumerProperties consumerProperties, String scenario) throws SDTException {
 		TextMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
 		xmlMessage.setText("test");
 		SDTMap properties = JCSMPFactory.onlyInstance().createMap();
 		properties.putString("my-header", "my-value");
 		xmlMessage.setProperties(properties);
 
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
+
 		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null,
-				solaceConsumerProperties);
+				smfMessageReaderProperties);
 
 		verify(xmlMessageMapper).applyHeaderKeyMapping(anyMap(), anyMap());
 
@@ -2534,8 +2553,9 @@ public class XMLMessageMapperTest {
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
 		consumerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
 		consumerProperties.setHeaderExclusions(excludedHeaders);
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
-		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null, consumerProperties);
+		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null, smfMessageReaderProperties);
 
 		assertEquals("2025-01-01T00:00:00Z", springMessage.getHeaders().get("mapped-timestamp-header"));
 

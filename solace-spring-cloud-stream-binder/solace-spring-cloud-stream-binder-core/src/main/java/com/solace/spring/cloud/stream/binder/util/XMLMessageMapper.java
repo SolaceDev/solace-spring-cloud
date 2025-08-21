@@ -247,18 +247,18 @@ public class XMLMessageMapper {
 	}
 
 	public Message<List<?>> mapBatchedToSpring(List<? extends XMLMessage> xmlMessages,
-											   AcknowledgmentCallback acknowledgmentCallback, SolaceConsumerProperties solaceConsumerProperties)
+											   AcknowledgmentCallback acknowledgmentCallback, SmfMessageReaderProperties smfMessageReaderProperties)
 			throws SolaceMessageConversionException {
-		return mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, solaceConsumerProperties);
+		return mapBatchedToSpring(xmlMessages, acknowledgmentCallback, false, smfMessageReaderProperties);
 	}
 
 	public Message<List<?>> mapBatchedToSpring(List<? extends XMLMessage> xmlMessages,
 											   AcknowledgmentCallback acknowledgmentCallback,
-											   boolean setRawMessageHeader, SolaceConsumerProperties solaceConsumerProperties) throws SolaceMessageConversionException {
+											   boolean setRawMessageHeader, SmfMessageReaderProperties smfMessageReaderProperties) throws SolaceMessageConversionException {
 		List<Map<String, Object>> batchedHeaders = new ArrayList<>();
 		List<Object> batchedPayloads = new ArrayList<>();
 		for (XMLMessage xmlMessage : xmlMessages) {
-			Message<?> message = mapToSpringInternal(xmlMessage, solaceConsumerProperties).build();
+			Message<?> message = mapToSpringInternal(xmlMessage, smfMessageReaderProperties).build();
 			batchedHeaders.add(message.getHeaders());
 			batchedPayloads.add(message.getPayload());
 		}
@@ -269,21 +269,20 @@ public class XMLMessageMapper {
 				.build();
 	}
 
-	public Message<?> mapToSpring(XMLMessage xmlMessage, AcknowledgmentCallback acknowledgmentCallback, SolaceConsumerProperties solaceConsumerProperties)
+	public Message<?> mapToSpring(XMLMessage xmlMessage, AcknowledgmentCallback acknowledgmentCallback, SmfMessageReaderProperties smfMessageReaderProperties)
 			throws SolaceMessageConversionException {
-		return mapToSpring(xmlMessage, acknowledgmentCallback, false, solaceConsumerProperties);
+		return mapToSpring(xmlMessage, acknowledgmentCallback, false, smfMessageReaderProperties);
 	}
 
 	public Message<?> mapToSpring(XMLMessage xmlMessage, AcknowledgmentCallback acknowledgmentCallback,
-								  boolean setRawMessageHeader, SolaceConsumerProperties solaceConsumerProperties) throws SolaceMessageConversionException {
-		return injectRootSpringHeaders(mapToSpringInternal(xmlMessage, solaceConsumerProperties), acknowledgmentCallback, setRawMessageHeader ?
+								  boolean setRawMessageHeader, SmfMessageReaderProperties smfMessageReaderProperties) throws SolaceMessageConversionException {
+		return injectRootSpringHeaders(mapToSpringInternal(xmlMessage, smfMessageReaderProperties), acknowledgmentCallback, setRawMessageHeader ?
 				xmlMessage : null).build();
 	}
 
-	private AbstractIntegrationMessageBuilder<?> mapToSpringInternal(XMLMessage xmlMessage, SolaceConsumerProperties solaceConsumerProperties)
+	private AbstractIntegrationMessageBuilder<?> mapToSpringInternal(XMLMessage xmlMessage, SmfMessageReaderProperties smfMessageReaderProperties)
 			throws SolaceMessageConversionException {
 		SDTMap metadata = xmlMessage.getProperties();
-		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(solaceConsumerProperties);
 
 		Object payload;
 		if (xmlMessage instanceof BytesMessage) {
