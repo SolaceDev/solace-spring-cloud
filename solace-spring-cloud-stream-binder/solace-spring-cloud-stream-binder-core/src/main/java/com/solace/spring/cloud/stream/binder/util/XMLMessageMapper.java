@@ -16,12 +16,14 @@ import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.MapMessage;
+import com.solacesystems.jcsmp.SDTException;
 import com.solacesystems.jcsmp.SDTMap;
 import com.solacesystems.jcsmp.SDTStream;
 import com.solacesystems.jcsmp.StreamMessage;
 import com.solacesystems.jcsmp.TextMessage;
 import com.solacesystems.jcsmp.XMLContentMessage;
 import com.solacesystems.jcsmp.XMLMessage;
+import com.solacesystems.jcsmp.impl.sdt.MapImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.binder.BinderHeaders;
@@ -110,6 +112,33 @@ public class XMLMessageMapper {
 			mappedTargetKeys.add(targetKey);
 		}
 		return Collections.unmodifiableMap(result);
+	}
+
+	SDTMap applyHeaderKeyMapping(final SDTMap sourceHeaders, Map<String, String> headerKeyMapping) {
+		if (sourceHeaders == null || sourceHeaders.isEmpty() || headerKeyMapping == null
+				|| headerKeyMapping.isEmpty()) {
+			return sourceHeaders;
+		}
+
+		SDTMap result = new MapImpl(sourceHeaders);
+		Set<String> mappedTargetKeys = new HashSet<>();
+		try {
+			for (Map.Entry<String, String> keyMapping : headerKeyMapping.entrySet()) {
+				String sourceKey = keyMapping.getKey();
+				String targetKey = keyMapping.getValue();
+
+				if (mappedTargetKeys.contains(targetKey)) {
+					LOGGER.warn("Duplicate mapping: multiple headers map to user property '{}'.", targetKey);
+					continue;
+				}
+
+				result.putObject(targetKey, result.get(sourceKey));
+				mappedTargetKeys.add(targetKey);
+			}
+		} catch (SDTException e) {
+			throw new RuntimeException(e);
+		}
+		return result;
 	}
 
 	// exposed for testing
@@ -418,10 +447,12 @@ public class XMLMessageMapper {
 		return metadata;
 	}
 
-	MessageHeaders mapHeadersToSpring(SDTMap metadata, SmfMessageReaderProperties smfMessageReaderProperties) {
-		if (metadata == null) {
+	MessageHeaders mapHeadersToSpring(SDTMap originalMetadata, SmfMessageReaderProperties smfMessageReaderProperties) {
+		if (originalMetadata == null) {
 			return new MessageHeaders(Collections.emptyMap());
 		}
+
+		SDTMap metadata = applyHeaderKeyMapping(originalMetadata, smfMessageReaderProperties.getHeaderToUserPropertyKeyMapping());
 
 		final Set<String> exclusionList = smfMessageReaderProperties.getHeaderExclusions() != null
 				? smfMessageReaderProperties.getHeaderExclusions() : Collections.emptySet();
@@ -481,7 +512,8 @@ public class XMLMessageMapper {
 			headers.put(SolaceBinderHeaders.MESSAGE_VERSION, messageVersion);
 		}
 
-		return new MessageHeaders(applyHeaderKeyMapping(headers, smfMessageReaderProperties.getHeaderToUserPropertyKeyMapping()));
+		//return new MessageHeaders(applyHeaderKeyMapping(headers, smfMessageReaderProperties.getHeaderToUserPropertyKeyMapping()));
+		return new MessageHeaders(headers);
 	}
 
 	private void addSDTMapObject(SDTMap sdtMap, Set<String> serializedHeaders, String key, Object object,
