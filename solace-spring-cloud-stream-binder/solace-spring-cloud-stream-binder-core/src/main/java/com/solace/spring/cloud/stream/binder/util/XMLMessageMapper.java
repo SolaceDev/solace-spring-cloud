@@ -89,51 +89,28 @@ public class XMLMessageMapper {
 				writerProperties);
 	}
 
-	Map<String, Object> applyHeaderKeyMapping(final Map<String, Object> headers,
+	Map<String, Object> applyHeaderKeyMapping(final Map<String, Object> sourceHeaders,
 			Map<String, String> headerKeyMapping) {
-		if (headers == null || headers.isEmpty() || headerKeyMapping == null
+		if (sourceHeaders == null || sourceHeaders.isEmpty() || headerKeyMapping == null
 				|| headerKeyMapping.isEmpty()) {
-			return headers;
+			return sourceHeaders;
 		}
 
-		Map<String, Object> result = new HashMap<>(headers);
-		Set<String> seenUserPropertyKeys = new HashSet<>();
+		Map<String, Object> result = new HashMap<>(sourceHeaders);
+		Set<String> mappedTargetKeys = new HashSet<>();
 		for (Map.Entry<String, String> keyMapping : headerKeyMapping.entrySet()) {
-			String headerKey = keyMapping.getKey();
-			String userPropertyKey = keyMapping.getValue();
+			String sourceKey = keyMapping.getKey();
+			String targetKey = keyMapping.getValue();
 
-			if (seenUserPropertyKeys.contains(userPropertyKey)) {
-				LOGGER.warn(
-						"Duplicate mapping: multiple headers map to user property '{}'. Using value from header '{}'.",
-						userPropertyKey, headerKey);
+			if (mappedTargetKeys.contains(targetKey)) {
+				LOGGER.warn("Duplicate mapping: multiple headers map to user property '{}'.", targetKey);
+				continue;
 			}
-			result.put(userPropertyKey, result.get(headerKey));
-			seenUserPropertyKeys.add(userPropertyKey);
+			result.put(targetKey, result.get(sourceKey));
+			mappedTargetKeys.add(targetKey);
 		}
 		return Collections.unmodifiableMap(result);
 	}
-
-	/*Map<String, Object> applyHeaderKeyMapping(final Map<String, Object> headers,
-			SmfMessageReaderProperties readerProperties) {
-		if (headers == null || headers.isEmpty()) {
-			return headers;
-		}
-
-		Map<String, Object> result = new HashMap<>(headers);
-		Set<String> seenUserPropertyKeys = new HashSet<>();
-		for (Map.Entry<String, String> keyMapping : readerProperties.getHeaderToUserPropertyKeyMapping().entrySet()) {
-			String headerKey = keyMapping.getKey();
-			String userPropertyKey = keyMapping.getValue();
-
-			if (seenUserPropertyKeys.contains(userPropertyKey)) {
-				LOGGER.warn("Duplicate mapping: multiple headers map to user property '{}'. Using value from header '{}'.",
-						userPropertyKey, headerKey);
-			}
-			result.put(userPropertyKey, result.get(headerKey));
-			seenUserPropertyKeys.add(userPropertyKey);
-		}
-		return Collections.unmodifiableMap(result);
-	}*/
 
 	// exposed for testing
 	XMLMessage mapToSmf(Object payload,
@@ -504,8 +481,7 @@ public class XMLMessageMapper {
 			headers.put(SolaceBinderHeaders.MESSAGE_VERSION, messageVersion);
 		}
 
-		applyHeaderKeyMapping(headers, smfMessageReaderProperties.getHeaderToUserPropertyKeyMapping());
-		return new MessageHeaders(headers);
+		return new MessageHeaders(applyHeaderKeyMapping(headers, smfMessageReaderProperties.getHeaderToUserPropertyKeyMapping()));
 	}
 
 	private void addSDTMapObject(SDTMap sdtMap, Set<String> serializedHeaders, String key, Object object,

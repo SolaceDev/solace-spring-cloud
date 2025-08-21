@@ -1,7 +1,7 @@
 package com.solace.spring.cloud.stream.binder.properties;
 
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -12,7 +12,7 @@ public class SmfMessageReaderProperties {
 
   public SmfMessageReaderProperties(SolaceConsumerProperties solaceConsumerProperties) {
     this.headerExclusions = new HashSet<>(solaceConsumerProperties.getHeaderExclusions());
-    this.headerToUserPropertyKeyMapping = new HashMap<>(solaceConsumerProperties.getHeaderToUserPropertyKeyMapping());
+    this.headerToUserPropertyKeyMapping = new LinkedHashMap<>(solaceConsumerProperties.getHeaderToUserPropertyKeyMapping());
   }
 
   public Set<String> getHeaderExclusions() {
