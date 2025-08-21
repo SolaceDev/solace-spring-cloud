@@ -4,6 +4,8 @@ import com.solace.spring.cloud.stream.binder.util.SmfMessageHeaderWriteCompatibi
 import com.solace.spring.cloud.stream.binder.util.SmfMessagePayloadWriteCompatibility;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class SmfMessageWriterProperties {
@@ -11,12 +13,14 @@ public class SmfMessageWriterProperties {
 	private SmfMessageHeaderWriteCompatibility headerTypeCompatibility;
 	private SmfMessagePayloadWriteCompatibility payloadTypeCompatibility;
 	private boolean nonSerializableHeaderConvertToString;
+	private Map<String, String> headerToUserPropertyKeyMapping;
 
 	public SmfMessageWriterProperties(SolaceProducerProperties solaceProducerProperties) {
 		this.headerExclusions = new HashSet<>(solaceProducerProperties.getHeaderExclusions());
 		this.headerTypeCompatibility = solaceProducerProperties.getHeaderTypeCompatibility();
 		this.payloadTypeCompatibility = solaceProducerProperties.getPayloadTypeCompatibility();
 		this.nonSerializableHeaderConvertToString = solaceProducerProperties.isNonserializableHeaderConvertToString();
+		this.headerToUserPropertyKeyMapping = new LinkedHashMap<>(solaceProducerProperties.getHeaderToUserPropertyKeyMapping());
 	}
 
 	public Set<String> getHeaderExclusions() {
@@ -49,5 +53,9 @@ public class SmfMessageWriterProperties {
 
 	public void setNonSerializableHeaderConvertToString(boolean nonSerializableHeaderConvertToString) {
 		this.nonSerializableHeaderConvertToString = nonSerializableHeaderConvertToString;
+	}
+
+	public Map<String, String> getHeaderToUserPropertyKeyMapping() {
+		return headerToUserPropertyKeyMapping;
 	}
 }

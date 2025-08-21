@@ -2,6 +2,9 @@ package com.solace.spring.cloud.stream.binder.properties;
 
 import com.solacesystems.jcsmp.EndpointProperties;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class SolaceCommonProperties {
 	/**
 	 * When set to true, messages will be received/sent using local transactions.
@@ -50,6 +53,11 @@ public class SolaceCommonProperties {
 	 */
 	private Boolean queueRespectsMsgTtl = null;
 	// ------------------------
+
+	/**
+	 * Mapping from Spring Message header names to JCSMP User Property keys and vice versa.
+	 */
+	private Map<String, String> headerToUserPropertyKeyMapping = new HashMap<>();
 
 	public boolean isTransacted() {
 		return transacted;
@@ -129,5 +137,13 @@ public class SolaceCommonProperties {
 
 	public void setQueueRespectsMsgTtl(Boolean queueRespectsMsgTtl) {
 		this.queueRespectsMsgTtl = queueRespectsMsgTtl;
+	}
+
+	public Map<String, String> getHeaderToUserPropertyKeyMapping() {
+		return headerToUserPropertyKeyMapping;
+	}
+
+	public void setHeaderToUserPropertyKeyMapping(Map<String, String> headerToUserPropertyKeyMapping) {
+		this.headerToUserPropertyKeyMapping = headerToUserPropertyKeyMapping;
 	}
 }

@@ -7,20 +7,23 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaderMeta;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceHeaderMeta;
-import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
+import com.solace.spring.cloud.stream.binder.properties.SmfMessageReaderProperties;
 import com.solace.spring.cloud.stream.binder.properties.SmfMessageWriterProperties;
+import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solacesystems.common.util.ByteArray;
 import com.solacesystems.jcsmp.BytesMessage;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.MapMessage;
+import com.solacesystems.jcsmp.SDTException;
 import com.solacesystems.jcsmp.SDTMap;
 import com.solacesystems.jcsmp.SDTStream;
 import com.solacesystems.jcsmp.StreamMessage;
 import com.solacesystems.jcsmp.TextMessage;
 import com.solacesystems.jcsmp.XMLContentMessage;
 import com.solacesystems.jcsmp.XMLMessage;
+import com.solacesystems.jcsmp.impl.sdt.MapImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.binder.BinderHeaders;
@@ -39,7 +42,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -89,13 +91,36 @@ public class XMLMessageMapper {
 				writerProperties);
 	}
 
+	Map<String, Object> applyHeaderKeyMapping(final Map<String, Object> sourceHeaders,
+			Map<String, String> headerKeyMapping) {
+		if (sourceHeaders == null || sourceHeaders.isEmpty() || headerKeyMapping == null
+				|| headerKeyMapping.isEmpty()) {
+			return sourceHeaders;
+		}
+
+		Map<String, Object> result = new HashMap<>(sourceHeaders);
+		Set<String> mappedTargetKeys = new HashSet<>();
+		for (Map.Entry<String, String> keyMapping : headerKeyMapping.entrySet()) {
+			String sourceKey = keyMapping.getKey();
+			String targetKey = keyMapping.getValue();
+
+			if (mappedTargetKeys.contains(targetKey)) {
+				LOGGER.warn("Duplicate mapping: multiple headers map to user property '{}'.", targetKey);
+				continue;
+			}
+			result.put(targetKey, result.get(sourceKey));
+			mappedTargetKeys.add(targetKey);
+		}
+		return Collections.unmodifiableMap(result);
+	}
+
 	// exposed for testing
 	XMLMessage mapToSmf(Object payload,
 						Map<String, Object> headers,
 						UUID messageId,
 						SmfMessageWriterProperties writerProperties) {
 		XMLMessage xmlMessage;
-		SDTMap metadata = mapHeadersToSmf(headers, writerProperties);
+		SDTMap metadata = mapHeadersToSmf(applyHeaderKeyMapping(headers, writerProperties.getHeaderToUserPropertyKeyMapping()), writerProperties);
 		rethrowableCall(metadata::putInteger, SolaceBinderHeaders.MESSAGE_VERSION, MESSAGE_VERSION);
 
 		if (payload instanceof byte[]) {
@@ -258,10 +283,7 @@ public class XMLMessageMapper {
 	private AbstractIntegrationMessageBuilder<?> mapToSpringInternal(XMLMessage xmlMessage, SolaceConsumerProperties solaceConsumerProperties)
 			throws SolaceMessageConversionException {
 		SDTMap metadata = xmlMessage.getProperties();
-		//TODO This needs to be made into a Set for performance reasons.
-		// Do this by taking the same approach as SmfMessageWriterProperties.
-		// i.e. create a corresponding SmfMessageReaderProperties class (which we need to do anyway).
-		List<String> excludedHeaders = solaceConsumerProperties.getHeaderExclusions();
+		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(solaceConsumerProperties);
 
 		Object payload;
 		if (xmlMessage instanceof BytesMessage) {
@@ -316,7 +338,7 @@ public class XMLMessageMapper {
 
 		AbstractIntegrationMessageBuilder<?> builder = MESSAGE_BUILDER_FACTORY
 				.withPayload(payload)
-				.copyHeaders(mapHeadersToSpring(metadata, excludedHeaders))
+				.copyHeaders(mapHeadersToSpring(metadata, smfMessageReaderProperties))
 				.setHeaderIfAbsent(MessageHeaders.CONTENT_TYPE, xmlMessage.getHTTPContentType());
 
 		if (isNullPayload) {
@@ -328,7 +350,7 @@ public class XMLMessageMapper {
 			if (!header.getValue().isReadable()) {
 				continue;
 			}
-			if (excludedHeaders != null && excludedHeaders.contains(header.getKey())) {
+			if (smfMessageReaderProperties.getHeaderExclusions() != null && smfMessageReaderProperties.getHeaderExclusions().contains(header.getKey())) {
 				continue;
 			}
 			if (ignoredHeaderProperties.contains(header.getKey())) {
@@ -398,13 +420,13 @@ public class XMLMessageMapper {
 		return metadata;
 	}
 
-	MessageHeaders mapHeadersToSpring(SDTMap metadata, Collection<String> excludedHeaders) {
+	MessageHeaders mapHeadersToSpring(SDTMap metadata, SmfMessageReaderProperties smfMessageReaderProperties) {
 		if (metadata == null) {
 			return new MessageHeaders(Collections.emptyMap());
 		}
 
-		final Collection<String> exclusionList =
-				excludedHeaders != null ? excludedHeaders : Collections.emptyList();
+		final Set<String> exclusionList = smfMessageReaderProperties.getHeaderExclusions() != null
+				? smfMessageReaderProperties.getHeaderExclusions() : Collections.emptySet();
 
 		Map<String,Object> headers = new HashMap<>();
 
@@ -461,7 +483,7 @@ public class XMLMessageMapper {
 			headers.put(SolaceBinderHeaders.MESSAGE_VERSION, messageVersion);
 		}
 
-		return new MessageHeaders(headers);
+		return new MessageHeaders(applyHeaderKeyMapping(headers, smfMessageReaderProperties.getHeaderToUserPropertyKeyMapping()));
 	}
 
 	private void addSDTMapObject(SDTMap sdtMap, Set<String> serializedHeaders, String key, Object object,
