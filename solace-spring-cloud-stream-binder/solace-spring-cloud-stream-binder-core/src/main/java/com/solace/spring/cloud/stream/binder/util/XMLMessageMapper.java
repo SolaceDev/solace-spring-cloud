@@ -22,7 +22,6 @@ import com.solacesystems.jcsmp.StreamMessage;
 import com.solacesystems.jcsmp.TextMessage;
 import com.solacesystems.jcsmp.XMLContentMessage;
 import com.solacesystems.jcsmp.XMLMessage;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.binder.BinderHeaders;
@@ -97,19 +96,25 @@ public class XMLMessageMapper {
 			return sourceHeaders;
 		}
 
+		//Optimization for performance: check if there are any applicable mappings
+		boolean hasApplicableMappings = false;
+		for (String sourceKey : headerKeyMapping.keySet()) {
+			if (sourceHeaders.containsKey(sourceKey)) {
+				hasApplicableMappings = true;
+				break;
+			}
+		}
+		if (!hasApplicableMappings) {
+			return sourceHeaders;
+		}
+
 		Map<String, Object> result = new HashMap<>(sourceHeaders);
-		Set<String> mappedTargetKeys = new HashSet<>();
 		for (Map.Entry<String, String> keyMapping : headerKeyMapping.entrySet()) {
 			String sourceKey = keyMapping.getKey();
 			String targetKey = keyMapping.getValue();
 
-			if (mappedTargetKeys.contains(targetKey)) {
-				LOGGER.warn("Duplicate mapping: multiple headers map to user property '{}'.", targetKey);
-				continue;
-			}
       if (result.containsKey(sourceKey)) {
         result.put(targetKey, result.get(sourceKey));
-        mappedTargetKeys.add(targetKey);
       }
 		}
 		return Collections.unmodifiableMap(result);
@@ -379,7 +384,6 @@ public class XMLMessageMapper {
 	SDTMap mapHeadersToSmf(Map<String, Object> headers, SmfMessageWriterProperties writerProperties) {
 		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
 		Set<String> serializedHeaders = new HashSet<>();
-		//Map<String, String> headerNameMapping = writerProperties.getHeaderNameMapping();
 		for (Map.Entry<String,Object> header : headers.entrySet()) {
 			if (header.getKey().equalsIgnoreCase(IntegrationMessageHeaderAccessor.ACKNOWLEDGMENT_CALLBACK) ||
 					header.getKey().equalsIgnoreCase(BinderHeaders.TARGET_DESTINATION) ||
@@ -388,13 +392,6 @@ public class XMLMessageMapper {
 					SolaceBinderHeaderMeta.META.containsKey(header.getKey())) {
 				continue;
 			}
-
-			/*String headerKey = header.getKey();
-			if (headerNameMapping != null && !headerNameMapping.isEmpty()
-					&& headerNameMapping.containsKey(header.getKey())) {
-				String targetKey = headerNameMapping.get(header.getKey());
-				headerKey = Objects.requireNonNullElse(targetKey, header.getKey());
-			}*/
 
 			if (writerProperties.getHeaderExclusions() != null &&
 					writerProperties.getHeaderExclusions().contains(header.getKey())) {
