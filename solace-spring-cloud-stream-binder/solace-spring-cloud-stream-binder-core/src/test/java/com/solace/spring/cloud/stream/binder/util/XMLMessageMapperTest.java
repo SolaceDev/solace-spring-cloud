@@ -2300,7 +2300,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	void testApplyHeaderKeyMapping_SpringHeadersToSolaceUserPropertyKeyMapping() throws SDTException {
+	void testApplyHeaderNameMapping_SpringHeadersToSolaceUserPropertyNameMapping() throws SDTException {
 		Map<String, String> headerToUserPropertyKeyMapping = new LinkedHashMap<>();
 		headerToUserPropertyKeyMapping.put("original-timestamp-header", "timestamp");
 		headerToUserPropertyKeyMapping.put("original-app-header", "app");
@@ -2311,7 +2311,7 @@ public class XMLMessageMapperTest {
 				.setHeader("original-unmapped-header", "some-value").build();
 
 		SolaceProducerProperties producerProperties = new SolaceProducerProperties();
-		producerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		producerProperties.setHeaderNameMapping(headerToUserPropertyKeyMapping);
 		SmfMessageWriterProperties writerProperties = new SmfMessageWriterProperties(
 				producerProperties);
 
@@ -2327,7 +2327,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	void testApplyHeaderKeyMapping_DuplicateSpringHeadersToSolaceUserPropertyKeyMapping()
+	void testApplyHeaderNameMapping_DuplicateSpringHeadersToSolaceUserPropertyNameMapping()
 			throws SDTException {
 		Map<String, String> headerToUserPropertyKeyMapping = new LinkedHashMap<>();
 		headerToUserPropertyKeyMapping.put("original-timestamp-header", "timestamp");
@@ -2339,7 +2339,7 @@ public class XMLMessageMapperTest {
 				.setHeader("original-unmapped-header", "some-value").build();
 
 		SolaceProducerProperties producerProperties = new SolaceProducerProperties();
-		producerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		producerProperties.setHeaderNameMapping(headerToUserPropertyKeyMapping);
 		SmfMessageWriterProperties writerProperties = new SmfMessageWriterProperties(
 				producerProperties);
 
@@ -2355,7 +2355,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	void testApplyHeaderKeyMapping_SolaceUserPropertiesToSpringHeadersMapping() throws SDTException {
+	void testApplyHeaderNameMapping_SolaceUserPropertiesToSpringHeadersMapping() throws SDTException {
 		Map<String, String> headerToUserPropertyKeyMapping = new LinkedHashMap<>();
 		headerToUserPropertyKeyMapping.put("id", "mapped-id-header");
 		headerToUserPropertyKeyMapping.put("timestamp", "mapped-timestamp-header");
@@ -2371,7 +2371,7 @@ public class XMLMessageMapperTest {
 		xmlMessage.setProperties(properties);
 
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
-		consumerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		consumerProperties.setHeaderNameMapping(headerToUserPropertyKeyMapping);
 		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
 		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null, smfMessageReaderProperties);
@@ -2390,7 +2390,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	void testApplyHeaderKeyMapping_DuplicateSolaceUserPropertiesToSpringHeadersMapping()
+	void testApplyHeaderNameMapping_DuplicateSolaceUserPropertiesToSpringHeadersMapping()
 			throws SDTException {
 		Map<String, String> headerToUserPropertyKeyMapping = new LinkedHashMap<>();
 		headerToUserPropertyKeyMapping.put("timestamp", "mapped-timestamp-header");
@@ -2405,7 +2405,7 @@ public class XMLMessageMapperTest {
 		xmlMessage.setProperties(properties);
 
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
-		consumerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		consumerProperties.setHeaderNameMapping(headerToUserPropertyKeyMapping);
 		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 
 		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null, smfMessageReaderProperties);
@@ -2419,9 +2419,9 @@ public class XMLMessageMapperTest {
 		assertEquals("some-value", springMessage.getHeaders().get("unmapped-user-prop"));
 	}
 
-	@ParameterizedTest(name = "{index} testApplyHeaderKeyMapping_ProducerBackwardCompatibility - {1}")
+	@ParameterizedTest(name = "{index} testApplyHeaderNameMapping_ProducerBackwardCompatibility - {1}")
 	@MethodSource("publisherBackwardCompatibilityArguments")
-	void testApplyHeaderKeyMapping_ProducerBackwardCompatibility(
+	void testApplyHeaderNameMapping_ProducerBackwardCompatibility(
 			SolaceProducerProperties producerProperties, String scenario) throws SDTException {
 		Message<?> springMessage = MessageBuilder.withPayload("test").setHeader("my-header", "my-value")
 				.build();
@@ -2430,8 +2430,8 @@ public class XMLMessageMapperTest {
 				producerProperties);
 		XMLMessage xmlMessage = xmlMessageMapper.mapToSmf(springMessage, writerProperties);
 
-		verify(xmlMessageMapper).applyHeaderKeyMapping(anyMap(),
-				eq(writerProperties.getHeaderToUserPropertyKeyMapping()));
+		verify(xmlMessageMapper).applyHeaderNameMapping(anyMap(),
+				eq(writerProperties.getHeaderNameMapping()));
 
 		SDTMap properties = xmlMessage.getProperties();
 		assertEquals("my-value", properties.getString("my-header"));
@@ -2439,7 +2439,7 @@ public class XMLMessageMapperTest {
 
 	private static Stream<Arguments> publisherBackwardCompatibilityArguments() {
 		SolaceProducerProperties producerPropertiesWithEmptyHeaderMapping = new SolaceProducerProperties();
-		producerPropertiesWithEmptyHeaderMapping.setHeaderToUserPropertyKeyMapping(
+		producerPropertiesWithEmptyHeaderMapping.setHeaderNameMapping(
 				new LinkedHashMap<>());
 
 		return Stream.of(arguments(new SolaceProducerProperties(), "Default Producer Properties"),
@@ -2447,9 +2447,9 @@ public class XMLMessageMapperTest {
 						"Producer Properties with Empty Mapping"));
 	}
 
-	@ParameterizedTest(name = "{index} testApplyHeaderKeyMapping_ConsumerBackwardCompatibility - {1}")
+	@ParameterizedTest(name = "{index} testApplyHeaderNameMapping_ConsumerBackwardCompatibility - {1}")
 	@MethodSource("consumerBackwardCompatibilityArguments")
-	void testApplyHeaderKeyMapping_ConsumerBackwardCompatibility(
+	void testApplyHeaderNameMapping_ConsumerBackwardCompatibility(
 			SolaceConsumerProperties consumerProperties, String scenario) throws SDTException {
 		TextMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
 		xmlMessage.setText("test");
@@ -2462,14 +2462,14 @@ public class XMLMessageMapperTest {
 		Message<?> springMessage = xmlMessageMapper.mapToSpring(xmlMessage, null,
 				smfMessageReaderProperties);
 
-		verify(xmlMessageMapper).applyHeaderKeyMapping(anyMap(), anyMap());
+		verify(xmlMessageMapper).applyHeaderNameMapping(anyMap(), anyMap());
 
 		assertEquals("my-value", springMessage.getHeaders().get("my-header"));
 	}
 
 	private static Stream<Arguments> consumerBackwardCompatibilityArguments() {
 		SolaceConsumerProperties consumerPropertiesWithEmptyHeaderMapping = new SolaceConsumerProperties();
-		consumerPropertiesWithEmptyHeaderMapping.setHeaderToUserPropertyKeyMapping(
+		consumerPropertiesWithEmptyHeaderMapping.setHeaderNameMapping(
 				new LinkedHashMap<>());
 
 		return Stream.of(arguments(new SolaceConsumerProperties(), "Default Consumer Properties"),
@@ -2478,7 +2478,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	void testApplyHeaderKeyMapping_MultipleMappingsAndTypes() throws SDTException {
+	void testApplyHeaderNameMapping_MultipleMappingsAndTypes() throws SDTException {
 		Map<String, String> headerToUserPropertyKeyMapping = new LinkedHashMap<>();
 		headerToUserPropertyKeyMapping.put("string-header", "str");
 		headerToUserPropertyKeyMapping.put("number-header", "num");
@@ -2490,7 +2490,7 @@ public class XMLMessageMapperTest {
 				.setHeader("boolean-header", true).setHeader("unmapped-header", "unmapped-value").build();
 
 		SolaceProducerProperties producerProperties = new SolaceProducerProperties();
-		producerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		producerProperties.setHeaderNameMapping(headerToUserPropertyKeyMapping);
 		SmfMessageWriterProperties writerProperties = new SmfMessageWriterProperties(
 				producerProperties);
 		XMLMessage xmlMessage = xmlMessageMapper.mapToSmf(springMessage, writerProperties);
@@ -2504,7 +2504,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	void testApplyHeaderKeyMapping_producerHeaderExclusionWithMapping() throws SDTException {
+	void testApplyHeaderNameMapping_producerHeaderExclusionWithMapping() throws SDTException {
 		Map<String, String> headerToUserPropertyKeyMapping = new LinkedHashMap<>();
 		headerToUserPropertyKeyMapping.put("original-timestamp-header", "timestamp");
 		headerToUserPropertyKeyMapping.put("original-app-header", "app");
@@ -2517,7 +2517,7 @@ public class XMLMessageMapperTest {
 				.setHeader("original-unmapped-header", "some-value").build();
 
 		SolaceProducerProperties producerProperties = new SolaceProducerProperties();
-		producerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		producerProperties.setHeaderNameMapping(headerToUserPropertyKeyMapping);
 		producerProperties.setHeaderExclusions(excludedHeaders);
 		SmfMessageWriterProperties writerProperties = new SmfMessageWriterProperties(
 				producerProperties);
@@ -2535,7 +2535,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	void testApplyHeaderKeyMapping_consumerHeaderExclusionWithMapping() throws SDTException {
+	void testApplyHeaderNameMapping_consumerHeaderExclusionWithMapping() throws SDTException {
 		Map<String, String> headerToUserPropertyKeyMapping = new LinkedHashMap<>();
 		headerToUserPropertyKeyMapping.put("timestamp", "mapped-timestamp-header");
 		headerToUserPropertyKeyMapping.put("excluded-header", "mapped-excluded-header");
@@ -2551,7 +2551,7 @@ public class XMLMessageMapperTest {
 		xmlMessage.setProperties(properties);
 
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
-		consumerProperties.setHeaderToUserPropertyKeyMapping(headerToUserPropertyKeyMapping);
+		consumerProperties.setHeaderNameMapping(headerToUserPropertyKeyMapping);
 		consumerProperties.setHeaderExclusions(excludedHeaders);
 		SmfMessageReaderProperties smfMessageReaderProperties = new SmfMessageReaderProperties(consumerProperties);
 

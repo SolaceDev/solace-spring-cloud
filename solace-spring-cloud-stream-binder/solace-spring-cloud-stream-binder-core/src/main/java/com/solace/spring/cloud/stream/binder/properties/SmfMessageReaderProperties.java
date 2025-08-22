@@ -9,18 +9,18 @@ import java.util.Set;
 public class SmfMessageReaderProperties {
 
   private Set<String> headerExclusions;
-  private Map<String, String> headerToUserPropertyKeyMapping;
+  private Map<String, String> headerNameMapping;
 
   public SmfMessageReaderProperties(SolaceConsumerProperties solaceConsumerProperties) {
     this.headerExclusions = new HashSet<>(Objects.requireNonNullElse(solaceConsumerProperties.getHeaderExclusions(), Set.of()));
-    this.headerToUserPropertyKeyMapping = new LinkedHashMap<>(Objects.requireNonNullElse(solaceConsumerProperties.getHeaderToUserPropertyKeyMapping(), Map.of()));
+    this.headerNameMapping = new LinkedHashMap<>(Objects.requireNonNullElse(solaceConsumerProperties.getHeaderNameMapping(), Map.of()));
   }
 
   public Set<String> getHeaderExclusions() {
     return headerExclusions;
   }
 
-  public Map<String, String> getHeaderToUserPropertyKeyMapping() {
-    return headerToUserPropertyKeyMapping;
+  public Map<String, String> getHeaderNameMapping() {
+    return headerNameMapping;
   }
 }

@@ -14,14 +14,14 @@ public class SmfMessageWriterProperties {
 	private SmfMessageHeaderWriteCompatibility headerTypeCompatibility;
 	private SmfMessagePayloadWriteCompatibility payloadTypeCompatibility;
 	private boolean nonSerializableHeaderConvertToString;
-	private Map<String, String> headerToUserPropertyKeyMapping;
+	private final Map<String, String> headerNameMapping;
 
 	public SmfMessageWriterProperties(SolaceProducerProperties solaceProducerProperties) {
 		this.headerExclusions = new HashSet<>(solaceProducerProperties.getHeaderExclusions());
 		this.headerTypeCompatibility = solaceProducerProperties.getHeaderTypeCompatibility();
 		this.payloadTypeCompatibility = solaceProducerProperties.getPayloadTypeCompatibility();
 		this.nonSerializableHeaderConvertToString = solaceProducerProperties.isNonserializableHeaderConvertToString();
-		this.headerToUserPropertyKeyMapping = new LinkedHashMap<>(Objects.requireNonNullElse(solaceProducerProperties.getHeaderToUserPropertyKeyMapping(), Map.of()));
+		this.headerNameMapping = new LinkedHashMap<>(Objects.requireNonNullElse(solaceProducerProperties.getHeaderNameMapping(), Map.of()));
 	}
 
 	public Set<String> getHeaderExclusions() {
@@ -56,7 +56,7 @@ public class SmfMessageWriterProperties {
 		this.nonSerializableHeaderConvertToString = nonSerializableHeaderConvertToString;
 	}
 
-	public Map<String, String> getHeaderToUserPropertyKeyMapping() {
-		return headerToUserPropertyKeyMapping;
+	public Map<String, String> getHeaderNameMapping() {
+		return headerNameMapping;
 	}
 }

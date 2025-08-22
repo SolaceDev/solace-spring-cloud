@@ -22,6 +22,7 @@ import com.solacesystems.jcsmp.StreamMessage;
 import com.solacesystems.jcsmp.TextMessage;
 import com.solacesystems.jcsmp.XMLContentMessage;
 import com.solacesystems.jcsmp.XMLMessage;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.binder.BinderHeaders;
@@ -89,7 +90,7 @@ public class XMLMessageMapper {
 				writerProperties);
 	}
 
-	Map<String, Object> applyHeaderKeyMapping(final Map<String, Object> sourceHeaders,
+	Map<String, Object> applyHeaderNameMapping(final Map<String, Object> sourceHeaders,
 			Map<String, String> headerKeyMapping) {
 		if (sourceHeaders == null || sourceHeaders.isEmpty() || headerKeyMapping == null
 				|| headerKeyMapping.isEmpty()) {
@@ -120,7 +121,7 @@ public class XMLMessageMapper {
 						UUID messageId,
 						SmfMessageWriterProperties writerProperties) {
 		XMLMessage xmlMessage;
-		SDTMap metadata = mapHeadersToSmf(applyHeaderKeyMapping(headers, writerProperties.getHeaderToUserPropertyKeyMapping()), writerProperties);
+		SDTMap metadata = mapHeadersToSmf(applyHeaderNameMapping(headers, writerProperties.getHeaderNameMapping()), writerProperties);
 		rethrowableCall(metadata::putInteger, SolaceBinderHeaders.MESSAGE_VERSION, MESSAGE_VERSION);
 
 		if (payload instanceof byte[]) {
@@ -378,6 +379,7 @@ public class XMLMessageMapper {
 	SDTMap mapHeadersToSmf(Map<String, Object> headers, SmfMessageWriterProperties writerProperties) {
 		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
 		Set<String> serializedHeaders = new HashSet<>();
+		//Map<String, String> headerNameMapping = writerProperties.getHeaderNameMapping();
 		for (Map.Entry<String,Object> header : headers.entrySet()) {
 			if (header.getKey().equalsIgnoreCase(IntegrationMessageHeaderAccessor.ACKNOWLEDGMENT_CALLBACK) ||
 					header.getKey().equalsIgnoreCase(BinderHeaders.TARGET_DESTINATION) ||
@@ -386,6 +388,14 @@ public class XMLMessageMapper {
 					SolaceBinderHeaderMeta.META.containsKey(header.getKey())) {
 				continue;
 			}
+
+			/*String headerKey = header.getKey();
+			if (headerNameMapping != null && !headerNameMapping.isEmpty()
+					&& headerNameMapping.containsKey(header.getKey())) {
+				String targetKey = headerNameMapping.get(header.getKey());
+				headerKey = Objects.requireNonNullElse(targetKey, header.getKey());
+			}*/
+
 			if (writerProperties.getHeaderExclusions() != null &&
 					writerProperties.getHeaderExclusions().contains(header.getKey())) {
 				continue;
@@ -482,7 +492,7 @@ public class XMLMessageMapper {
 			headers.put(SolaceBinderHeaders.MESSAGE_VERSION, messageVersion);
 		}
 
-		return new MessageHeaders(applyHeaderKeyMapping(headers, smfMessageReaderProperties.getHeaderToUserPropertyKeyMapping()));
+		return new MessageHeaders(applyHeaderNameMapping(headers, smfMessageReaderProperties.getHeaderNameMapping()));
 	}
 
 	private void addSDTMapObject(SDTMap sdtMap, Set<String> serializedHeaders, String key, Object object,

@@ -1,6 +1,6 @@
 # Header to User Property Key Mapping
 
-This document describes the configurable header-to-user-property-key-mapping feature in the Solace Spring Cloud Stream Binder.
+This document describes the configurable `headerNameMapping` feature in the Solace Spring Cloud Stream Binder.
 
 ## Overview
 
@@ -16,17 +16,19 @@ spring:
     stream:
       solace:
         default:
+          consumer:
+            headerNameMapping:
+              timestamp: my-timestamp
+              app: source-application
+              reqId: request-id
+              correlationId: correlation-key
           producer:
-            headerToUserPropertyKeyMapping:
+            headerNameMapping:
               my-timestamp: timestamp
               source-application: app
               request-id: reqId
               correlation-key: correlationId
-          consumer:
-            headerToUserPropertyKeyMapping:
-              my-timestamp: timestamp
-              source-application: app
-              request-id: reqId
+          
 ```
 
 Per binding specific configuration: under `spring.cloud.stream.solace.<binding-name>`.
@@ -38,14 +40,14 @@ spring:
       solace:
         consumerBindingName-in-0:
           consumer:
-            headerToUserPropertyKeyMapping:
-              my-timestamp: timestamp
-              source-application: app
-              request-id: reqId
-              correlation-key: correlationId
+            headerNameMapping:
+              timestamp: my-timestamp
+              app: source-application
+              reqId: request-id
+              correlationId: correlation-key
         producerBindingName-out-0:
           producer:
-            headerToUserPropertyKeyMapping:
+            headerNameMapping:
               my-timestamp: timestamp
               source-application: app
               request-id: reqId
@@ -53,10 +55,14 @@ spring:
 ```
 
 With this configuration:
-- The header `my-timestamp` will be mapped to user property `timestamp`
-- The header `source-application` will be mapped to user property `app`
-- The header `request-id` will be mapped to user property `reqId`
-- The header `correlation-key` will be mapped to user property `correlationId`
+
+Following mapping will be applied when consuming messages from Solace to Spring Cloud Stream:
+- The header `timestamp`  will be mapped to user property `my-timestamp`
+- The header `app` will be mapped to user property `source-application`
+- The header `reqId` will be mapped to user property `request-id`
+- The header `correlationId` will be mapped to user property `correlation-key`
+
+and vise versa when producing messages from Spring Cloud Stream to Solace.
 
 ## Behavior
 
@@ -76,7 +82,7 @@ When consuming messages from Solace to Spring Cloud Stream:
 ## Backward Compatibility
 
 This feature is fully backward compatible:
-- If no `headerToUserPropertyKeyMapping` is configured, the binder behaves exactly as before
+- If no `headerNameMapping` is configured, the binder behaves exactly as before
 - Existing applications will continue to work without any changes
 
 ## Best Practices
@@ -100,7 +106,7 @@ spring:
   cloud:
     stream:
       solace:
-        headerToUserPropertyKeyMapping:
+        headerNameMapping:
           spring-message-id: MSG_ID
           spring-timestamp: TS
           spring-source: SRC_SYS
@@ -114,7 +120,7 @@ spring:
   cloud:
     stream:
       solace:
-        headerToUserPropertyKeyMapping:
+        headerNameMapping:
           http-request-id: requestId
           http-session-id: sessionId
           http-user-agent: userAgent
@@ -128,7 +134,7 @@ spring:
   cloud:
     stream:
       solace:
-        headerToUserPropertyKeyMapping:
+        headerNameMapping:
           very-long-descriptive-header-name: vh
           another-verbose-header-name: av
           processing-correlation-identifier: pci
