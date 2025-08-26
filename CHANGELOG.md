@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.2] - 2025-08-26
+### Added
+- New metric "oldest messages in the processing queue" that exposes the same age calculation used for WARN and ERROR log thresholds to monitoring systems
+
 ## [7.0.1] - 2025-08-04
 ### Fixed
 - Updated sol-jcsmp to 10.27.3 from 10.27.2 to fix binary update on retransmitting a message can lead to corrupt message, finally provoking broker restart (EBP-1167)
