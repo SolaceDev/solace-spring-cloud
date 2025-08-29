@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.3] - 2025-08-29
+### Fixed
+- Fix false positive "messages is still in progress" log warn message
+### Changed
+- Introduced log trace to get detail information about message processing times
+
 ## [7.0.2] - 2025-08-26
 ### Added
 - New metric "oldest messages in the processing queue" that exposes the same age calculation used for WARN and ERROR log thresholds to monitoring systems
