@@ -1,25 +1,20 @@
 package com.solace.spring.cloud.stream.binder.config;
 
 import com.solace.spring.cloud.stream.binder.SolaceMessageChannelBinder;
+import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.health.SolaceBinderHealthAccessor;
 import com.solace.spring.cloud.stream.binder.health.handlers.SolaceSessionEventHandler;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.outbound.JCSMPOutboundMessageHandler;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceEndpointProvisioner;
-import com.solacesystems.jcsmp.Context;
-import com.solacesystems.jcsmp.ContextProperties;
-import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPProperties;
-import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.SolaceSessionOAuth2TokenProvider;
-import com.solacesystems.jcsmp.SpringJCSMPFactory;
-import com.solacesystems.jcsmp.impl.JCSMPBasicSession;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.stream.config.ProducerMessageHandlerCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -28,11 +23,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.Nullable;
 
-import java.util.Set;
-
-import static com.solacesystems.jcsmp.XMLMessage.Outcome.ACCEPTED;
-import static com.solacesystems.jcsmp.XMLMessage.Outcome.FAILED;
-import static com.solacesystems.jcsmp.XMLMessage.Outcome.REJECTED;
 
 @Configuration
 @Import({SolaceHealthIndicatorsConfiguration.class, OAuth2ClientAutoConfiguration.class})
@@ -42,11 +32,10 @@ public class SolaceMessageChannelBinderConfiguration {
 	private final SolaceExtendedBindingProperties solaceExtendedBindingProperties;
 	private final SolaceSessionEventHandler solaceSessionEventHandler;
 
-	private volatile JCSMPSession jcsmpSession;
-	private volatile Context context;
-
 	@Nullable
 	private final SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider;
+
+	private final SolaceSessionManager solaceSessionManager;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SolaceMessageChannelBinderConfiguration.class);
 
@@ -61,74 +50,25 @@ public class SolaceMessageChannelBinderConfiguration {
 		this.solaceExtendedBindingProperties = solaceExtendedBindingProperties;
 		this.solaceSessionEventHandler = eventHandler;
 		this.solaceSessionOAuth2TokenProvider = solaceSessionOAuth2TokenProvider;
+		this.solaceSessionManager = new SolaceSessionManager(jcsmpProperties, eventHandler, solaceSessionOAuth2TokenProvider, failOnStartup);
 	}
 
+	/**
+	 * Initialize session eagerly if failOnStartup is true (for backward compatibility).
+	 */
 	@PostConstruct
-	private void initSession() throws JCSMPException {
-		initSession(true);
-	}
-
-	private synchronized void initSession(boolean isPostConstruct) {
-		if (jcsmpSession != null && !jcsmpSession.isClosed()) {
-			return;
-		}
-
-		if(isPostConstruct && !failOnStartup) {
-			return;
-		}
-
-		JCSMPProperties solaceJcsmpProperties = (JCSMPProperties) this.jcsmpProperties.clone();
-		solaceJcsmpProperties.setProperty(JCSMPProperties.CLIENT_INFO_PROVIDER, new SolaceBinderClientInfoProvider());
-		try {
-			if (solaceSessionEventHandler != null) {
-				LOGGER.debug("Registering Solace Session Event handler on session");
-
-				SpringJCSMPFactory springJCSMPFactory = new SpringJCSMPFactory(solaceJcsmpProperties, solaceSessionOAuth2TokenProvider);
-				context = springJCSMPFactory.createContext(new ContextProperties());
-				jcsmpSession = springJCSMPFactory.createSession(context, solaceSessionEventHandler);
-			} else {
-				SpringJCSMPFactory springJCSMPFactory = new SpringJCSMPFactory(solaceJcsmpProperties, solaceSessionOAuth2TokenProvider);
-				jcsmpSession = springJCSMPFactory.createSession();
-			}
-			LOGGER.info("Connecting JCSMP session {}, PostConstruct: {}", jcsmpSession.getSessionName(), isPostConstruct);
-			jcsmpSession.connect();
-			if (solaceSessionEventHandler != null) {
-				// after setting the session health indicator status to UP,
-				// we should not be worried about setting its status to DOWN,
-				// as the call closing JCSMP session also delete the context
-				// and terminates the application
-				solaceSessionEventHandler.setSessionHealthUp();
-			}
-
-			if (jcsmpSession instanceof JCSMPBasicSession session &&
-					!session.isRequiredSettlementCapable(Set.of(ACCEPTED,FAILED,REJECTED))) {
-				LOGGER.warn("The connected Solace PubSub+ Broker is not compatible. It doesn't support message NACK capability. Consumer bindings will fail to start.");
-			}
-		} catch (Exception e) {
-			if (context != null) {
-				context.destroy();
-			}
-			LOGGER.error("Failed to initialize Solace JCSMP session", e);
-			//if (failOnStartup) {
-				throw new RuntimeException(e);
-			//}
+	public void init() {
+		if (failOnStartup) {
+			LOGGER.debug("Eagerly initializing Solace session due to failOnStartup=true");
+			solaceSessionManager.getSession();
+		} else {
+			LOGGER.debug("Deferring Solace session initialization due to failOnStartup=false");
 		}
 	}
 
-	private JCSMPSession getJcsmpSession() {
-		if (jcsmpSession == null) {
-			initSession(false);
-		}
-		return jcsmpSession;
-	}
-
-	private Context getContext() {
-		if (context == null) {
-			initSession(false);
-		}
-		return context;
-	}
-
+	/**
+	 * Main binder bean - uses @Lazy to defer instantiation.
+	 */
 	@Bean
 	@Lazy
 	SolaceMessageChannelBinder solaceMessageChannelBinder(
@@ -136,7 +76,9 @@ public class SolaceMessageChannelBinderConfiguration {
 			@Nullable ProducerMessageHandlerCustomizer<JCSMPOutboundMessageHandler> producerCustomizer,
 			@Nullable SolaceBinderHealthAccessor solaceBinderHealthAccessor,
 			@Nullable SolaceMeterAccessor solaceMeterAccessor) {
-		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(this.getJcsmpSession(), this.getContext(), solaceEndpointProvisioner);
+
+		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(
+			solaceSessionManager, solaceEndpointProvisioner);
 		binder.setExtendedBindingProperties(solaceExtendedBindingProperties);
 		binder.setProducerMessageHandlerCustomizer(producerCustomizer);
 		binder.setSolaceMeterAccessor(solaceMeterAccessor);
@@ -144,10 +86,13 @@ public class SolaceMessageChannelBinderConfiguration {
 		return binder;
 	}
 
+	/**
+	 * Provisioner bean - uses @Lazy to defer instantiation.
+	 */
 	@Bean
 	@Lazy
 	SolaceEndpointProvisioner provisioningProvider() {
-		return new SolaceEndpointProvisioner(getJcsmpSession());
+		return new SolaceEndpointProvisioner(solaceSessionManager);
 	}
 
 }

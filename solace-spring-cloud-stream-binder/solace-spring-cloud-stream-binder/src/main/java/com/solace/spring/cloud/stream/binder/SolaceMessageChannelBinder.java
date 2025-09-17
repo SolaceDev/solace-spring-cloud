@@ -51,9 +51,10 @@ public class SolaceMessageChannelBinder
 		implements ExtendedPropertiesBinder<MessageChannel, SolaceConsumerProperties, SolaceProducerProperties>,
 				DisposableBean {
 
-	private final JCSMPSession jcsmpSession;
+	private JCSMPSession jcsmpSession;
 	private final Context jcsmpContext;
 	private final JCSMPSessionProducerManager sessionProducerManager;
+	private final SolaceSessionManager solaceSessionManager;
 	private final AtomicBoolean consumersRemoteStopFlag = new AtomicBoolean(false);
 	private final String errorHandlerProducerKey = UUID.randomUUID().toString();
 	@Nullable private SolaceMeterAccessor solaceMeterAccessor;
@@ -64,12 +65,23 @@ public class SolaceMessageChannelBinder
 	public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, SolaceEndpointProvisioner solaceEndpointProvisioner) {
 		this(jcsmpSession, null, solaceEndpointProvisioner);
 	}
+
+	public SolaceMessageChannelBinder(SolaceSessionManager solaceSessionManager, SolaceEndpointProvisioner solaceEndpointProvisioner) {
+		super(new String[0], solaceEndpointProvisioner);
+		this.solaceSessionManager = solaceSessionManager;
+		this.jcsmpSession = null;
+		this.jcsmpContext = null;
+		this.sessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
+	}
+
 	public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, Context jcsmpContext, SolaceEndpointProvisioner solaceEndpointProvisioner) {
 		super(new String[0], solaceEndpointProvisioner);
 		this.jcsmpSession = jcsmpSession;
 		this.jcsmpContext = jcsmpContext;
 		this.sessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
+		this.solaceSessionManager = null;
 	}
+
 
 	@Override
 	public String getBinderIdentity() {
@@ -78,6 +90,7 @@ public class SolaceMessageChannelBinder
 
 	@Override
 	public void destroy() {
+		jcsmpSession = (solaceSessionManager != null) ? solaceSessionManager.getSession() : jcsmpSession;
 		logger.info(String.format("Closing JCSMP session %s", jcsmpSession.getSessionName()));
 		sessionProducerManager.release(errorHandlerProducerKey);
 		consumersRemoteStopFlag.set(true);
@@ -91,6 +104,7 @@ public class SolaceMessageChannelBinder
 	protected MessageHandler createProducerMessageHandler(ProducerDestination destination,
 														  ExtendedProducerProperties<SolaceProducerProperties> producerProperties,
 														  MessageChannel errorChannel) {
+		jcsmpSession = (solaceSessionManager != null) ? solaceSessionManager.getSession() : jcsmpSession;
 		JCSMPOutboundMessageHandler handler = new JCSMPOutboundMessageHandler(
 				destination,
 				jcsmpSession,
@@ -119,6 +133,7 @@ public class SolaceMessageChannelBinder
 
 		SolaceConsumerDestination solaceDestination = (SolaceConsumerDestination) destination;
 
+		jcsmpSession = (solaceSessionManager != null) ? solaceSessionManager.getSession() : jcsmpSession;
 		JCSMPInboundChannelAdapter adapter = new JCSMPInboundChannelAdapter(
 				solaceDestination,
 				jcsmpSession,
@@ -172,6 +187,7 @@ public class SolaceMessageChannelBinder
 		SolaceConsumerDestination solaceDestination = (SolaceConsumerDestination) destination;
 
 		EndpointProperties endpointProperties = getConsumerEndpointProperties(consumerProperties);
+		jcsmpSession = (solaceSessionManager != null) ? solaceSessionManager.getSession() : jcsmpSession;
 		JCSMPMessageSource messageSource = new JCSMPMessageSource(solaceDestination,
 				jcsmpSession,
 				consumerProperties.isBatchMode() ? new BatchCollector(consumerProperties.getExtension()) : null,
