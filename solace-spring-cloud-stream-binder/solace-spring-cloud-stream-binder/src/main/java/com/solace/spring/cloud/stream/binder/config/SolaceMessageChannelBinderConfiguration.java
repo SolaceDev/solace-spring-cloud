@@ -19,11 +19,13 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.stream.config.ProducerMessageHandlerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.Nullable;
 
 import java.util.Set;
@@ -40,13 +42,16 @@ public class SolaceMessageChannelBinderConfiguration {
 	private final SolaceExtendedBindingProperties solaceExtendedBindingProperties;
 	private final SolaceSessionEventHandler solaceSessionEventHandler;
 
-	private JCSMPSession jcsmpSession;
-	private Context context;
+	private volatile JCSMPSession jcsmpSession;
+	private volatile Context context;
 
 	@Nullable
 	private final SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SolaceMessageChannelBinderConfiguration.class);
+
+	@Value("${solace.session.failOnStartup:true}")
+	private boolean failOnStartup;
 
 	public SolaceMessageChannelBinderConfiguration(JCSMPProperties jcsmpProperties,
 	                                               SolaceExtendedBindingProperties solaceExtendedBindingProperties,
@@ -60,6 +65,18 @@ public class SolaceMessageChannelBinderConfiguration {
 
 	@PostConstruct
 	private void initSession() throws JCSMPException {
+		initSession(true);
+	}
+
+	private synchronized void initSession(boolean isPostConstruct) {
+		if (jcsmpSession != null && !jcsmpSession.isClosed()) {
+			return;
+		}
+
+		if(isPostConstruct && !failOnStartup) {
+			return;
+		}
+
 		JCSMPProperties solaceJcsmpProperties = (JCSMPProperties) this.jcsmpProperties.clone();
 		solaceJcsmpProperties.setProperty(JCSMPProperties.CLIENT_INFO_PROVIDER, new SolaceBinderClientInfoProvider());
 		try {
@@ -73,7 +90,7 @@ public class SolaceMessageChannelBinderConfiguration {
 				SpringJCSMPFactory springJCSMPFactory = new SpringJCSMPFactory(solaceJcsmpProperties, solaceSessionOAuth2TokenProvider);
 				jcsmpSession = springJCSMPFactory.createSession();
 			}
-			LOGGER.info("Connecting JCSMP session {}", jcsmpSession.getSessionName());
+			LOGGER.info("Connecting JCSMP session {}, PostConstruct: {}", jcsmpSession.getSessionName(), isPostConstruct);
 			jcsmpSession.connect();
 			if (solaceSessionEventHandler != null) {
 				// after setting the session health indicator status to UP,
@@ -91,17 +108,35 @@ public class SolaceMessageChannelBinderConfiguration {
 			if (context != null) {
 				context.destroy();
 			}
-			throw e;
+			LOGGER.error("Failed to initialize Solace JCSMP session", e);
+			//if (failOnStartup) {
+				throw new RuntimeException(e);
+			//}
 		}
 	}
 
+	private JCSMPSession getJcsmpSession() {
+		if (jcsmpSession == null) {
+			initSession(false);
+		}
+		return jcsmpSession;
+	}
+
+	private Context getContext() {
+		if (context == null) {
+			initSession(false);
+		}
+		return context;
+	}
+
 	@Bean
+	@Lazy
 	SolaceMessageChannelBinder solaceMessageChannelBinder(
 			SolaceEndpointProvisioner solaceEndpointProvisioner,
 			@Nullable ProducerMessageHandlerCustomizer<JCSMPOutboundMessageHandler> producerCustomizer,
 			@Nullable SolaceBinderHealthAccessor solaceBinderHealthAccessor,
 			@Nullable SolaceMeterAccessor solaceMeterAccessor) {
-		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession, context, solaceEndpointProvisioner);
+		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(this.getJcsmpSession(), this.getContext(), solaceEndpointProvisioner);
 		binder.setExtendedBindingProperties(solaceExtendedBindingProperties);
 		binder.setProducerMessageHandlerCustomizer(producerCustomizer);
 		binder.setSolaceMeterAccessor(solaceMeterAccessor);
@@ -110,8 +145,9 @@ public class SolaceMessageChannelBinderConfiguration {
 	}
 
 	@Bean
+	@Lazy
 	SolaceEndpointProvisioner provisioningProvider() {
-		return new SolaceEndpointProvisioner(jcsmpSession);
+		return new SolaceEndpointProvisioner(getJcsmpSession());
 	}
 
 }
