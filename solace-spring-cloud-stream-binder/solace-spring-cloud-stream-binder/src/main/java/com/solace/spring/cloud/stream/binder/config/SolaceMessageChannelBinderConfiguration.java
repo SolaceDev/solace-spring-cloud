@@ -50,7 +50,8 @@ public class SolaceMessageChannelBinderConfiguration {
 		this.solaceExtendedBindingProperties = solaceExtendedBindingProperties;
 		this.solaceSessionEventHandler = eventHandler;
 		this.solaceSessionOAuth2TokenProvider = solaceSessionOAuth2TokenProvider;
-		this.solaceSessionManager = new SolaceSessionManager(jcsmpProperties, eventHandler, solaceSessionOAuth2TokenProvider, failOnStartup);
+		this.solaceSessionManager = new SolaceSessionManager(jcsmpProperties, new SolaceBinderClientInfoProvider(),
+				eventHandler, solaceSessionOAuth2TokenProvider, failOnStartup);
 	}
 
 	/**
@@ -70,7 +71,6 @@ public class SolaceMessageChannelBinderConfiguration {
 	 * Main binder bean - uses @Lazy to defer instantiation.
 	 */
 	@Bean
-	@Lazy
 	SolaceMessageChannelBinder solaceMessageChannelBinder(
 			SolaceEndpointProvisioner solaceEndpointProvisioner,
 			@Nullable ProducerMessageHandlerCustomizer<JCSMPOutboundMessageHandler> producerCustomizer,
@@ -90,7 +90,6 @@ public class SolaceMessageChannelBinderConfiguration {
 	 * Provisioner bean - uses @Lazy to defer instantiation.
 	 */
 	@Bean
-	@Lazy
 	SolaceEndpointProvisioner provisioningProvider() {
 		return new SolaceEndpointProvisioner(solaceSessionManager);
 	}

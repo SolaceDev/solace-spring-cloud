@@ -1,6 +1,7 @@
 package com.solace.spring.cloud.stream.binder.test.util;
 
 import com.solace.spring.cloud.stream.binder.SolaceMessageChannelBinder;
+import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.EndpointProvider;
@@ -14,6 +15,7 @@ import com.solacesystems.jcsmp.Endpoint;
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.JCSMPSession;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.binder.AbstractPollableConsumerTestBinder;
@@ -50,7 +52,9 @@ public class SolaceTestBinder
 		this.applicationContext = new AnnotationConfigApplicationContext(Config.class);
 		this.jcsmpSession = jcsmpSession;
 		this.sempV2Api = sempV2Api;
-		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession, new SolaceEndpointProvisioner(jcsmpSession));
+		SolaceSessionManager solaceSessionManager = Mockito.mock(SolaceSessionManager.class);
+		Mockito.when(solaceSessionManager.getSession()).thenReturn(jcsmpSession);
+		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(solaceSessionManager, new SolaceEndpointProvisioner(solaceSessionManager));
 		binder.setApplicationContext(this.applicationContext);
 		this.setPollableConsumerBinder(binder);
 	}

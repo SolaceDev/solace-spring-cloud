@@ -1,5 +1,6 @@
 package com.solace.spring.cloud.stream.binder.util;
 
+import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.JCSMPStreamingPublishCorrelatingEventHandler;
@@ -16,18 +17,28 @@ import java.util.UUID;
 
 public class JCSMPSessionProducerManager extends SharedResourceManager<XMLMessageProducer> {
 	private final JCSMPSession session;
+	private final SolaceSessionManager solaceSessionManager;
+
 	private final CloudStreamEventHandler publisherEventHandler = new CloudStreamEventHandler();
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(JCSMPSessionProducerManager.class);
 
-	public JCSMPSessionProducerManager(JCSMPSession session) {
+	/*public JCSMPSessionProducerManager(JCSMPSession session) {
 		super("producer");
 		this.session = session;
+		this.solaceSessionManager = null;
+	}*/
+
+	public JCSMPSessionProducerManager(SolaceSessionManager solaceSessionManager) {
+		super("producer");
+		this.session = null;
+		this.solaceSessionManager = solaceSessionManager;
 	}
+
 
 	@Override
 	XMLMessageProducer create() throws JCSMPException {
-		return session.getMessageProducer(publisherEventHandler);
+		return solaceSessionManager.getSession().getMessageProducer(publisherEventHandler);
 	}
 
 	@Override

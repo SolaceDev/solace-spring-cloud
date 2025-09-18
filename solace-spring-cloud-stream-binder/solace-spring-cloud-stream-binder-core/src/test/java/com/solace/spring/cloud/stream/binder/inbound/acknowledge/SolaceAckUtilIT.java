@@ -1,6 +1,7 @@
 package com.solace.spring.cloud.stream.binder.inbound.acknowledge;
 
 import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
+import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.util.ErrorQueueInfrastructure;
 import com.solace.spring.cloud.stream.binder.util.FlowReceiverContainer;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.junitpioneer.jupiter.cartesian.CartesianTest.Values;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.integration.acks.AcknowledgmentCallback;
 import org.springframework.integration.acks.AcknowledgmentCallback.Status;
@@ -202,8 +204,10 @@ class SolaceAckUtilIT {
     }
 
     String producerManagerKey = UUID.randomUUID().toString();
+    SolaceSessionManager solaceSessionManager = Mockito.mock(SolaceSessionManager.class);
+    Mockito.when(solaceSessionManager.getSession()).thenReturn(jcsmpSession);
     JCSMPSessionProducerManager jcsmpSessionProducerManager = new JCSMPSessionProducerManager(
-        jcsmpSession);
+        solaceSessionManager);
     ErrorQueueInfrastructure errorQueueInfrastructure = new ErrorQueueInfrastructure(
         jcsmpSessionProducerManager,
         producerManagerKey, RandomStringUtils.randomAlphanumeric(20),

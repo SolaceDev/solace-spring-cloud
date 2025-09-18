@@ -43,10 +43,10 @@ public class SolaceEndpointProvisioner
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SolaceEndpointProvisioner.class);
 
-	public SolaceEndpointProvisioner(JCSMPSession jcsmpSession) {
+	/*public SolaceEndpointProvisioner(JCSMPSession jcsmpSession) {
 		this.jcsmpSession = jcsmpSession;
 		this.solaceSessionManager = null;
-	}
+	}*/
 
 	public SolaceEndpointProvisioner(SolaceSessionManager solaceSessionManager) {
 		this.jcsmpSession = null;

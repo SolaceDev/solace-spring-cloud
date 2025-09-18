@@ -62,26 +62,25 @@ public class SolaceMessageChannelBinder
 	private static final SolaceMessageHeaderErrorMessageStrategy errorMessageStrategy = new SolaceMessageHeaderErrorMessageStrategy();
 	@Nullable private SolaceBinderHealthAccessor solaceBinderHealthAccessor;
 
-	public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, SolaceEndpointProvisioner solaceEndpointProvisioner) {
+	/*public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, SolaceEndpointProvisioner solaceEndpointProvisioner) {
 		this(jcsmpSession, null, solaceEndpointProvisioner);
-	}
+	}*/
+
+	/*public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, Context jcsmpContext, SolaceEndpointProvisioner solaceEndpointProvisioner) {
+		super(new String[0], solaceEndpointProvisioner);
+		this.jcsmpSession = jcsmpSession;
+		this.jcsmpContext = jcsmpContext;
+		this.sessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
+		this.solaceSessionManager = null;
+	}*/
 
 	public SolaceMessageChannelBinder(SolaceSessionManager solaceSessionManager, SolaceEndpointProvisioner solaceEndpointProvisioner) {
 		super(new String[0], solaceEndpointProvisioner);
 		this.solaceSessionManager = solaceSessionManager;
 		this.jcsmpSession = null;
 		this.jcsmpContext = null;
-		this.sessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
+		this.sessionProducerManager = new JCSMPSessionProducerManager(solaceSessionManager);
 	}
-
-	public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, Context jcsmpContext, SolaceEndpointProvisioner solaceEndpointProvisioner) {
-		super(new String[0], solaceEndpointProvisioner);
-		this.jcsmpSession = jcsmpSession;
-		this.jcsmpContext = jcsmpContext;
-		this.sessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
-		this.solaceSessionManager = null;
-	}
-
 
 	@Override
 	public String getBinderIdentity() {

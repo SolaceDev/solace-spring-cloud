@@ -1,6 +1,7 @@
 package com.solace.spring.cloud.stream.binder.inbound.acknowledge;
 
 import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
+import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.util.ErrorQueueInfrastructure;
 import com.solace.spring.cloud.stream.binder.util.FlowReceiverContainer;
@@ -828,8 +829,11 @@ public class JCSMPAcknowledgementCallbackFactoryIT {
 			throw new IllegalStateException("Should only have one error queue infrastructure");
 		}
 
+		SolaceSessionManager solaceSessionManager = Mockito.mock(SolaceSessionManager.class);
+		when(solaceSessionManager.getSession()).thenReturn(jcsmpSession);
+
 		String producerManagerKey = UUID.randomUUID().toString();
-		JCSMPSessionProducerManager jcsmpSessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
+		JCSMPSessionProducerManager jcsmpSessionProducerManager = new JCSMPSessionProducerManager(solaceSessionManager);
 		ErrorQueueInfrastructure errorQueueInfrastructure = new ErrorQueueInfrastructure(jcsmpSessionProducerManager,
 				producerManagerKey, RandomStringUtils.randomAlphanumeric(20), new SolaceConsumerProperties());
 		Queue errorQueue = JCSMPFactory.onlyInstance().createQueue(errorQueueInfrastructure.getErrorQueueName());
