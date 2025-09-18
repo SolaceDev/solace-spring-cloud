@@ -89,8 +89,33 @@ All notable changes to this project will be documented in this file.
 - Updated build-helper-maven-plugin to 3.6.1
 - Updated maven-failsafe-plugin to 3.5.3
 
+## [5.2.0] - 2025-09-18
+### Added
+- Added magic word to allow non-durable queues to be used with programmatic start
 
+## [5.1.1] - 2025-09-18
+### Fixed
+- Fix header deserialisation for messages that passed the kafka bridge.
 
+## [5.1.0] - 2025-09-05 - Backport from 7.1.0 all features and fixes
+### Fixed
+- reapply the subscriptions to queues after reconnect to ensure they are present after the temporary queue has been removed during a long disconnect
+- Fix false positive "messages is still in progress" log warn message
+- New metric "oldest messages in the processing queue" that exposes the same age calculation used for WARN and ERROR log thresholds to monitoring systems
+- Improved restart/reconnection reliability with proper null checks and cleanup in flow receiver handling
+- Enhanced flow receiver lifecycle management to ensure clean restarts
+- Updated sol-jcsmp to 10.28.1 because of window size 0 and other fixed bugs
+
+### Added
+- Add concurrent processing on exclusive queues and anonymous consumer groups
+- New integration test for binder restart functionality (SolaceBinderRestartIT)
+
+### Changed
+- Introduced log trace to get detail information about message processing times
+- Health indicator now immediately reports `DOWN` status when connection is down or reconnecting
+- Simplified health check behavior for more accurate connection state reporting
+- Improved restart/reconnection reliability with proper null checks and cleanup in flow receiver handling
+- Enhanced flow receiver lifecycle management to ensure clean restarts
 
 ## [5.0.10] - 2025-05-26
 ### Fixed
