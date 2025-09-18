@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.2.1] - 2025-09-18
+### Fixed
+- Fix header deserialisation for messages that passed the kafka bridge.
+
+
 ## [7.2.0] - 2025-09-04
 ### Added
 - Added magic word to allow non-durable queues to be used with programmatic start
