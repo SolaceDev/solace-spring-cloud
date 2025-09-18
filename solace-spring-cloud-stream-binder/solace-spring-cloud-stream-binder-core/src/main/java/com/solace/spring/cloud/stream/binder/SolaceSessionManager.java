@@ -30,8 +30,8 @@ public class SolaceSessionManager implements SolaceSessionProvider {
   private final SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider;
   private final boolean failOnStartup;
 
-  private JCSMPSession jcsmpSession;
-  private Context context;
+  private volatile JCSMPSession jcsmpSession;
+  private volatile Context context;
   private final Object sessionLock = new Object();
 
   public SolaceSessionManager(JCSMPProperties jcsmpProperties,
@@ -54,63 +54,70 @@ public class SolaceSessionManager implements SolaceSessionProvider {
     return jcsmpSession;
   }
 
-  private synchronized void createSessionIfNeeded() {
-    // Double-check pattern
+  private void createSessionIfNeeded() {
+    // Double-check pattern with consistent synchronization
     if (jcsmpSession != null && !jcsmpSession.isClosed()) {
       return;
     }
 
-    JCSMPProperties solaceJcsmpProperties = (JCSMPProperties) this.jcsmpProperties.clone();
-    if (this.clientInfoProvider != null) {
-      solaceJcsmpProperties.setProperty(JCSMPProperties.CLIENT_INFO_PROVIDER, clientInfoProvider);
-    }
+    synchronized (sessionLock) {
+      // Double-check pattern
+      if (jcsmpSession != null && !jcsmpSession.isClosed()) {
+        return;
+      }
 
-    try {
+      JCSMPProperties solaceJcsmpProperties = (JCSMPProperties) this.jcsmpProperties.clone();
+      if (this.clientInfoProvider != null) {
+        solaceJcsmpProperties.setProperty(JCSMPProperties.CLIENT_INFO_PROVIDER, clientInfoProvider);
+      }
+
       try {
-        SpringJCSMPFactory springJCSMPFactory = new SpringJCSMPFactory(solaceJcsmpProperties,
-            solaceSessionOAuth2TokenProvider);
+        try {
+          SpringJCSMPFactory springJCSMPFactory = new SpringJCSMPFactory(solaceJcsmpProperties,
+              solaceSessionOAuth2TokenProvider);
 
-        if (solaceSessionEventHandler != null) {
-          LOGGER.debug("Registering Solace Session Event handler on session");
-          context = springJCSMPFactory.createContext(new ContextProperties());
-          jcsmpSession = springJCSMPFactory.createSession(context, solaceSessionEventHandler);
-        } else {
-          jcsmpSession = springJCSMPFactory.createSession();
+          if (solaceSessionEventHandler != null) {
+            LOGGER.debug("Registering Solace Session Event handler on session");
+            context = springJCSMPFactory.createContext(new ContextProperties());
+            jcsmpSession = springJCSMPFactory.createSession(context, solaceSessionEventHandler);
+          } else {
+            jcsmpSession = springJCSMPFactory.createSession();
+          }
+
+          if (solaceSessionEventHandler != null) {
+            solaceSessionEventHandler.setSessionHealthReconnecting();
+          }
+
+          LOGGER.info("Connecting JCSMP session {}", jcsmpSession.getSessionName());
+          jcsmpSession.connect();
+
+          if (solaceSessionEventHandler != null) {
+            solaceSessionEventHandler.setSessionHealthUp();
+          }
+
+          // Check broker compatibility
+          if (jcsmpSession instanceof JCSMPBasicSession session
+              && !session.isRequiredSettlementCapable(Set.of(ACCEPTED, FAILED, REJECTED))) {
+            LOGGER.warn(
+                "The connected Solace PubSub+ Broker is not compatible. It doesn't support message NACK capability. Consumer bindings will fail to start.");
+          }
+
+          LOGGER.info("Successfully created and connected Solace JCSMP session");
+        } catch (JCSMPException exc) {
+          //Throw exception to prevent application from starting if configured to do so (currently the default)
+          if (failOnStartup) {
+            throw exc;
+          }
+        }
+      } catch (Exception e) {
+        LOGGER.error("Failed to initialize Solace JCSMP session", e);
+        if (context != null) {
+          context.destroy();
         }
 
-        if (solaceSessionEventHandler != null) {
-          solaceSessionEventHandler.setSessionHealthReconnecting();
-        }
-
-        LOGGER.info("Connecting JCSMP session {}", jcsmpSession.getSessionName());
-        jcsmpSession.connect();
-
-        if (solaceSessionEventHandler != null) {
-          solaceSessionEventHandler.setSessionHealthUp();
-        }
-
-        // Check broker compatibility
-        if (jcsmpSession instanceof JCSMPBasicSession session
-            && !session.isRequiredSettlementCapable(Set.of(ACCEPTED, FAILED, REJECTED))) {
-          LOGGER.warn(
-              "The connected Solace PubSub+ Broker is not compatible. It doesn't support message NACK capability. Consumer bindings will fail to start.");
-        }
-
-        LOGGER.info("Successfully created and connected Solace JCSMP session");
-      } catch (JCSMPException exc) {
-        //Throw exception to prevent application from starting if configured to do so (currently the default)
-        if (failOnStartup) {
-          throw exc;
-        }
+        //Throw runtime exception to prevent application from starting
+        throw new SolaceSessionException("Failed to initialize Solace JCSMP session", e);
       }
-    } catch (Exception e) {
-      LOGGER.error("Failed to initialize Solace JCSMP session", e);
-      if (context != null) {
-        context.destroy();
-      }
-
-      //Throw runtime exception to prevent application from starting
-      throw new SolaceSessionException("Failed to initialize Solace JCSMP session", e);
     }
   }
 
