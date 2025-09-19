@@ -5,9 +5,9 @@ import static com.solacesystems.jcsmp.XMLMessage.Outcome.FAILED;
 import static com.solacesystems.jcsmp.XMLMessage.Outcome.REJECTED;
 
 import com.solace.spring.cloud.stream.binder.health.handlers.SolaceSessionEventHandler;
+import com.solace.spring.cloud.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solacesystems.jcsmp.Context;
 import com.solacesystems.jcsmp.ContextProperties;
-import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.SolaceSessionOAuth2TokenProvider;
@@ -17,7 +17,6 @@ import com.solacesystems.jcsmp.impl.client.ClientInfoProvider;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.Nullable;
 
 public class SolaceSessionManager implements SolaceSessionProvider {
@@ -28,41 +27,39 @@ public class SolaceSessionManager implements SolaceSessionProvider {
   private final ClientInfoProvider clientInfoProvider;
   private final SolaceSessionEventHandler solaceSessionEventHandler;
   private final SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider;
-  private final boolean failOnStartup;
+  private final SolaceBinderConfigurationProperties solaceBinderConfigurationProperties;
 
   private volatile JCSMPSession jcsmpSession;
   private volatile Context context;
   private final Object sessionLock = new Object();
 
   public SolaceSessionManager(JCSMPProperties jcsmpProperties,
+      SolaceBinderConfigurationProperties solaceBinderConfigurationProperties,
       @Nullable ClientInfoProvider clientInfoProvider,
       @Nullable SolaceSessionEventHandler eventHandler,
-      @Nullable SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider,
-      @Value("${solace.session.failOnStartup:true}") boolean failOnStartup) {
+      @Nullable SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider) {
     this.jcsmpProperties = jcsmpProperties;
+    this.solaceBinderConfigurationProperties = solaceBinderConfigurationProperties;
     this.clientInfoProvider = clientInfoProvider;
     this.solaceSessionEventHandler = eventHandler;
     this.solaceSessionOAuth2TokenProvider = solaceSessionOAuth2TokenProvider;
-    this.failOnStartup = failOnStartup;
   }
 
   @Override
   public JCSMPSession getSession() {
-    if (jcsmpSession == null || jcsmpSession.isClosed()) {
+    if (jcsmpSession == null) {
       createSessionIfNeeded();
     }
     return jcsmpSession;
   }
 
   private void createSessionIfNeeded() {
-    // Double-check pattern with consistent synchronization
-    if (jcsmpSession != null && !jcsmpSession.isClosed()) {
+    if (jcsmpSession != null) {
       return;
     }
 
     synchronized (sessionLock) {
-      // Double-check pattern
-      if (jcsmpSession != null && !jcsmpSession.isClosed()) {
+      if (jcsmpSession != null) {
         return;
       }
 
@@ -72,48 +69,38 @@ public class SolaceSessionManager implements SolaceSessionProvider {
       }
 
       try {
-        try {
-          SpringJCSMPFactory springJCSMPFactory = new SpringJCSMPFactory(solaceJcsmpProperties,
-              solaceSessionOAuth2TokenProvider);
+        SpringJCSMPFactory springJCSMPFactory = new SpringJCSMPFactory(solaceJcsmpProperties,
+            solaceSessionOAuth2TokenProvider);
 
-          if (solaceSessionEventHandler != null) {
-            LOGGER.debug("Registering Solace Session Event handler on session");
-            context = springJCSMPFactory.createContext(new ContextProperties());
-            jcsmpSession = springJCSMPFactory.createSession(context, solaceSessionEventHandler);
-          } else {
-            jcsmpSession = springJCSMPFactory.createSession();
-          }
-
-          if (solaceSessionEventHandler != null) {
-            solaceSessionEventHandler.setSessionHealthReconnecting();
-          }
-
-          LOGGER.info("Connecting JCSMP session {}", jcsmpSession.getSessionName());
-          jcsmpSession.connect();
-
-          if (solaceSessionEventHandler != null) {
-            solaceSessionEventHandler.setSessionHealthUp();
-          }
-
-          // Check broker compatibility
-          if (jcsmpSession instanceof JCSMPBasicSession session
-              && !session.isRequiredSettlementCapable(Set.of(ACCEPTED, FAILED, REJECTED))) {
-            LOGGER.warn(
-                "The connected Solace PubSub+ Broker is not compatible. It doesn't support message NACK capability. Consumer bindings will fail to start.");
-          }
-
-          LOGGER.info("Successfully created and connected Solace JCSMP session");
-        } catch (JCSMPException exc) {
-          //Throw exception to prevent application from starting if configured to do so (currently the default)
-          if (failOnStartup) {
-            throw exc;
-          }
+        if (solaceSessionEventHandler != null) {
+          LOGGER.debug("Registering Solace Session Event handler on session");
+          context = springJCSMPFactory.createContext(new ContextProperties());
+          jcsmpSession = springJCSMPFactory.createSession(context, solaceSessionEventHandler);
+        } else {
+          jcsmpSession = springJCSMPFactory.createSession();
         }
+
+        if (solaceSessionEventHandler != null) {
+          solaceSessionEventHandler.setSessionHealthReconnecting();
+        }
+
+        LOGGER.info("Connecting JCSMP session {}", jcsmpSession.getSessionName());
+        jcsmpSession.connect();
+
+        if (solaceSessionEventHandler != null) {
+          solaceSessionEventHandler.setSessionHealthUp();
+        }
+
+        // Check broker compatibility
+        if (jcsmpSession instanceof JCSMPBasicSession session
+            && !session.isRequiredSettlementCapable(Set.of(ACCEPTED, FAILED, REJECTED))) {
+          LOGGER.warn(
+              "The connected Solace PubSub+ Broker is not compatible. It doesn't support message NACK capability. Consumer bindings will fail to start.");
+        }
+
+        LOGGER.info("Successfully created and connected Solace JCSMP session");
       } catch (Exception e) {
         LOGGER.error("Failed to initialize Solace JCSMP session", e);
-        if (context != null) {
-          context.destroy();
-        }
 
         //Throw runtime exception to prevent application from starting
         throw new SolaceSessionException("Failed to initialize Solace JCSMP session", e);

@@ -2,6 +2,7 @@ package com.solace.spring.cloud.stream.binder.config;
 
 import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.SolaceMessageChannelBinder;
+import com.solace.spring.cloud.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;
@@ -44,7 +45,7 @@ public class SolaceBinderConfigIT {
 		jcsmpProperties.setProperty(JCSMPProperties.CLIENT_NAME, clientName);
 
 		binderConfiguration = new SolaceMessageChannelBinderConfiguration(jcsmpProperties,
-				new SolaceExtendedBindingProperties(), null, null);
+				new SolaceExtendedBindingProperties(), new SolaceBinderConfigurationProperties(), null, null);
 		AutowireCapableBeanFactory beanFactory = applicationContext.getAutowireCapableBeanFactory();
 		beanFactory.autowireBean(binderConfiguration);
 		binderConfiguration = (SolaceMessageChannelBinderConfiguration) beanFactory.initializeBean(binderConfiguration,
