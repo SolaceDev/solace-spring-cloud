@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder.provisioning;
 
-import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
+import com.solace.spring.cloud.stream.binder.util.SolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.properties.SolaceCommonProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
@@ -38,14 +38,9 @@ import java.util.stream.Collectors;
 public class SolaceEndpointProvisioner
 		implements ProvisioningProvider<ExtendedConsumerProperties<SolaceConsumerProperties>,ExtendedProducerProperties<SolaceProducerProperties>> {
 
-	//private JCSMPSession jcsmpSession;
-	private SolaceSessionManager solaceSessionManager;
+	private final SolaceSessionManager solaceSessionManager;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SolaceEndpointProvisioner.class);
-
-	/*public SolaceEndpointProvisioner(JCSMPSession jcsmpSession) {
-		this.jcsmpSession = jcsmpSession;
-	}*/
 
 	public SolaceEndpointProvisioner(SolaceSessionManager solaceSessionManager) {
 		this.solaceSessionManager = solaceSessionManager;

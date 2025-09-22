@@ -1,7 +1,7 @@
 package com.solace.spring.cloud.stream.binder.inbound.acknowledge;
 
 import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
-import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
+import com.solace.spring.cloud.stream.binder.util.DefaultSolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.util.ErrorQueueInfrastructure;
 import com.solace.spring.cloud.stream.binder.util.FlowReceiverContainer;
@@ -829,32 +829,36 @@ public class JCSMPAcknowledgementCallbackFactoryIT {
 			throw new IllegalStateException("Should only have one error queue infrastructure");
 		}
 
-		SolaceSessionManager solaceSessionManager = Mockito.mock(SolaceSessionManager.class);
-		when(solaceSessionManager.getSession()).thenReturn(jcsmpSession);
-
-		String producerManagerKey = UUID.randomUUID().toString();
-		JCSMPSessionProducerManager jcsmpSessionProducerManager = new JCSMPSessionProducerManager(solaceSessionManager);
-		ErrorQueueInfrastructure errorQueueInfrastructure = new ErrorQueueInfrastructure(jcsmpSessionProducerManager,
-				producerManagerKey, RandomStringUtils.randomAlphanumeric(20), new SolaceConsumerProperties());
-		Queue errorQueue = JCSMPFactory.onlyInstance().createQueue(errorQueueInfrastructure.getErrorQueueName());
-		ackCallbackFactory.setErrorQueueInfrastructure(errorQueueInfrastructure);
-		closeErrorQueueInfrastructureCallback = () -> {
-			jcsmpSessionProducerManager.release(producerManagerKey);
-
-			try {
-				jcsmpSession.deprovision(errorQueue, JCSMPSession.WAIT_FOR_CONFIRM);
-			} catch (JCSMPException e) {
-				throw new RuntimeException(e);
-			}
-		};
-
 		try {
+			DefaultSolaceSessionManager defaultSolaceSessionManager = Mockito.mock(
+					DefaultSolaceSessionManager.class);
+			when(defaultSolaceSessionManager.getSession()).thenReturn(jcsmpSession);
+
+			String producerManagerKey = UUID.randomUUID().toString();
+			JCSMPSessionProducerManager jcsmpSessionProducerManager = new JCSMPSessionProducerManager(
+					defaultSolaceSessionManager);
+			ErrorQueueInfrastructure errorQueueInfrastructure = new ErrorQueueInfrastructure(
+					jcsmpSessionProducerManager,
+					producerManagerKey, RandomStringUtils.randomAlphanumeric(20),
+					new SolaceConsumerProperties());
+			Queue errorQueue = JCSMPFactory.onlyInstance()
+					.createQueue(errorQueueInfrastructure.getErrorQueueName());
+			ackCallbackFactory.setErrorQueueInfrastructure(errorQueueInfrastructure);
+			closeErrorQueueInfrastructureCallback = () -> {
+				jcsmpSessionProducerManager.release(producerManagerKey);
+
+				try {
+					jcsmpSession.deprovision(errorQueue, JCSMPSession.WAIT_FOR_CONFIRM);
+				} catch (JCSMPException e) {
+					throw new RuntimeException(e);
+				}
+			};
+
 			jcsmpSession.provision(errorQueue, new EndpointProperties(), JCSMPSession.WAIT_FOR_CONFIRM);
+			return errorQueueInfrastructure;
 		} catch (JCSMPException e) {
 			throw new RuntimeException(e);
 		}
-
-		return errorQueueInfrastructure;
 	}
 
 	private void validateNumEnqueuedMessages(SempV2Api sempV2Api, String queueName, int expectedCount)

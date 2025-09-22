@@ -1,7 +1,6 @@
 package com.solace.spring.cloud.stream.binder.util;
 
 import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
-import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.test.integration.junit.jupiter.extension.PubSubPlusExtension;
 import com.solace.test.integration.semp.v2.SempV2Api;
@@ -55,10 +54,12 @@ public class ErrorQueueRepublishCorrelationKeyIT {
 	@BeforeEach
 	public void setUp(JCSMPSession jcsmpSession) throws Exception {
 		String producerManagerKey = UUID.randomUUID().toString();
-		SolaceSessionManager solaceSessionManager = Mockito.mock(SolaceSessionManager.class);
-		Mockito.when(solaceSessionManager.getSession()).thenReturn(jcsmpSession);
+		DefaultSolaceSessionManager defaultSolaceSessionManager = Mockito.mock(
+				DefaultSolaceSessionManager.class);
+		Mockito.when(defaultSolaceSessionManager.getSession()).thenReturn(jcsmpSession);
 
-		JCSMPSessionProducerManager producerManager = new JCSMPSessionProducerManager(solaceSessionManager);
+		JCSMPSessionProducerManager producerManager = new JCSMPSessionProducerManager(
+				defaultSolaceSessionManager);
 		producer = producerManager.get(producerManagerKey);
 
 		errorQueueInfrastructure = Mockito.spy(new ErrorQueueInfrastructure(producerManager, producerManagerKey,

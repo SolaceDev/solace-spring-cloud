@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder.outbound;
 
-import com.solace.spring.cloud.stream.binder.SolaceSessionManager;
+import com.solace.spring.cloud.stream.binder.util.DefaultSolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.messaging.SolaceBinderHeaders;
 import com.solace.spring.cloud.stream.binder.meter.SolaceMeterAccessor;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
@@ -108,9 +108,11 @@ public class JCSMPOutboundMessageHandlerTest {
 		producerProperties = new ExtendedProducerProperties<>(new SolaceProducerProperties());
 		producerProperties.populateBindingName(RandomStringUtils.randomAlphanumeric(100));
 
-		SolaceSessionManager solaceSessionManager = Mockito.mock(SolaceSessionManager.class);
-		Mockito.lenient().when(solaceSessionManager.getSession()).thenReturn(session);
-		sessionProducerManager = Mockito.spy(new JCSMPSessionProducerManager(solaceSessionManager));
+		DefaultSolaceSessionManager defaultSolaceSessionManager = Mockito.mock(
+				DefaultSolaceSessionManager.class);
+		Mockito.lenient().when(defaultSolaceSessionManager.getSession()).thenReturn(session);
+		sessionProducerManager = Mockito.spy(new JCSMPSessionProducerManager(
+				defaultSolaceSessionManager));
 
 		messageHandler = new JCSMPOutboundMessageHandler(
 				dest,
@@ -507,14 +509,15 @@ public class JCSMPOutboundMessageHandlerTest {
 		ProducerDestination dest = Mockito.mock(ProducerDestination.class);
 		Mockito.when(dest.getName()).thenReturn("thisIsOverriddenByDynamicDestinationName");
 
-		SolaceSessionManager solaceSessionManager = Mockito.mock(SolaceSessionManager.class);
-		Mockito.when(solaceSessionManager.getSession()).thenReturn(session);
+		DefaultSolaceSessionManager defaultSolaceSessionManager = Mockito.mock(
+				DefaultSolaceSessionManager.class);
+		Mockito.when(defaultSolaceSessionManager.getSession()).thenReturn(session);
 
 		messageHandler = new JCSMPOutboundMessageHandler(
 				dest,
 				session,
 				null,
-				new JCSMPSessionProducerManager(solaceSessionManager),
+				new JCSMPSessionProducerManager(defaultSolaceSessionManager),
 				new ExtendedProducerProperties<>(producerProperties),
 				solaceMeterAccessor
 		);

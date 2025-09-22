@@ -1,13 +1,13 @@
-package com.solace.spring.cloud.stream.binder;
+package com.solace.spring.cloud.stream.binder.util;
 
 import static com.solacesystems.jcsmp.XMLMessage.Outcome.ACCEPTED;
 import static com.solacesystems.jcsmp.XMLMessage.Outcome.FAILED;
 import static com.solacesystems.jcsmp.XMLMessage.Outcome.REJECTED;
 
 import com.solace.spring.cloud.stream.binder.health.handlers.SolaceSessionEventHandler;
-import com.solace.spring.cloud.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solacesystems.jcsmp.Context;
 import com.solacesystems.jcsmp.ContextProperties;
+import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.SolaceSessionOAuth2TokenProvider;
@@ -19,41 +19,38 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
 
-public class SolaceSessionManager implements SolaceSessionProvider {
+public class DefaultSolaceSessionManager implements SolaceSessionManager {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SolaceSessionManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSolaceSessionManager.class);
 
   private final JCSMPProperties jcsmpProperties;
   private final ClientInfoProvider clientInfoProvider;
   private final SolaceSessionEventHandler solaceSessionEventHandler;
   private final SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider;
-  private final SolaceBinderConfigurationProperties solaceBinderConfigurationProperties;
 
   private volatile JCSMPSession jcsmpSession;
   private volatile Context context;
   private final Object sessionLock = new Object();
 
-  public SolaceSessionManager(JCSMPProperties jcsmpProperties,
-      SolaceBinderConfigurationProperties solaceBinderConfigurationProperties,
+  public DefaultSolaceSessionManager(JCSMPProperties jcsmpProperties,
       @Nullable ClientInfoProvider clientInfoProvider,
       @Nullable SolaceSessionEventHandler eventHandler,
       @Nullable SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider) {
     this.jcsmpProperties = jcsmpProperties;
-    this.solaceBinderConfigurationProperties = solaceBinderConfigurationProperties;
     this.clientInfoProvider = clientInfoProvider;
     this.solaceSessionEventHandler = eventHandler;
     this.solaceSessionOAuth2TokenProvider = solaceSessionOAuth2TokenProvider;
   }
 
   @Override
-  public JCSMPSession getSession() {
+  public JCSMPSession getSession() throws JCSMPException {
     if (jcsmpSession == null) {
       createSessionIfNeeded();
     }
     return jcsmpSession;
   }
 
-  private void createSessionIfNeeded() {
+  private void createSessionIfNeeded() throws JCSMPException {
     if (jcsmpSession != null) {
       return;
     }
@@ -81,7 +78,7 @@ public class SolaceSessionManager implements SolaceSessionProvider {
         }
 
         if (solaceSessionEventHandler != null) {
-          solaceSessionEventHandler.setSessionHealthReconnecting();
+          solaceSessionEventHandler.setSessionHealthDown();
         }
 
         LOGGER.info("Connecting JCSMP session {}", jcsmpSession.getSessionName());
@@ -94,16 +91,13 @@ public class SolaceSessionManager implements SolaceSessionProvider {
         // Check broker compatibility
         if (jcsmpSession instanceof JCSMPBasicSession session
             && !session.isRequiredSettlementCapable(Set.of(ACCEPTED, FAILED, REJECTED))) {
-          LOGGER.warn(
-              "The connected Solace PubSub+ Broker is not compatible. It doesn't support message NACK capability. Consumer bindings will fail to start.");
+          LOGGER.warn("The connected Solace PubSub+ Broker is not compatible. It doesn't support message NACK capability. Consumer bindings will fail to start.");
         }
 
         LOGGER.info("Successfully created and connected Solace JCSMP session");
-      } catch (Exception e) {
+      } catch (JCSMPException e) {
         LOGGER.error("Failed to initialize Solace JCSMP session", e);
-
-        //Throw runtime exception to prevent application from starting
-        throw new SolaceSessionException("Failed to initialize Solace JCSMP session", e);
+        throw e;
       }
     }
   }
@@ -112,7 +106,7 @@ public class SolaceSessionManager implements SolaceSessionProvider {
     synchronized (sessionLock) {
       if (jcsmpSession != null) {
         try {
-          LOGGER.info("Closing Solace JCSMP session");
+          LOGGER.info("Closing JCSMP session {}", jcsmpSession.getSessionName());
           jcsmpSession.closeSession();
         } catch (Exception e) {
           LOGGER.warn("Error closing JCSMP session", e);
@@ -130,16 +124,6 @@ public class SolaceSessionManager implements SolaceSessionProvider {
           context = null;
         }
       }
-    }
-  }
-
-  /**
-   * a RuntimeException for Solace session failures.
-   */
-  public static class SolaceSessionException extends RuntimeException {
-
-    public SolaceSessionException(String message, Throwable cause) {
-      super(message, cause);
     }
   }
 }

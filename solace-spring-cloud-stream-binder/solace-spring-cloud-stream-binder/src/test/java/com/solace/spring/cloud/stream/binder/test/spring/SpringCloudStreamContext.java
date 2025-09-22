@@ -124,7 +124,7 @@ public class SpringCloudStreamContext extends PartitionCapableBinderTests<Solace
 	}
 
 	@Override
-	public void close() {
+	public void close() throws Exception {
 		if (testBinder != null) {
 			LOGGER.info("Destroying binder");
 			testBinder.getBinder().destroy();
