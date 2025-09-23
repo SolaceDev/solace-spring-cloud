@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder.util;
 
-public enum InitSession {
+public enum SessionInitializationMode {
 
   EAGER,
   LAZY;

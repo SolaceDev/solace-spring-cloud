@@ -1,20 +1,20 @@
 package com.solace.spring.cloud.stream.binder.properties;
 
 
-import com.solace.spring.cloud.stream.binder.util.InitSession;
+import com.solace.spring.cloud.stream.binder.util.SessionInitializationMode;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "spring.cloud.stream.solace.binder")
 public class SolaceBinderConfigurationProperties {
 
 
-  private InitSession initSession = InitSession.EAGER;
+  private SessionInitializationMode sessionInitializationMode = SessionInitializationMode.EAGER;
 
-  public InitSession getInitSession() {
-    return initSession;
+  public SessionInitializationMode getSessionInitializationMode() {
+    return sessionInitializationMode;
   }
 
-  public void setInitSession(InitSession initSession) {
-    this.initSession = initSession;
+  public void setSessionInitializationMode(SessionInitializationMode sessionInitializationMode) {
+    this.sessionInitializationMode = sessionInitializationMode;
   }
 }

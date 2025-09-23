@@ -7,7 +7,7 @@ import com.solace.spring.cloud.stream.binder.outbound.JCSMPOutboundMessageHandle
 import com.solace.spring.cloud.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;
 import com.solace.spring.cloud.stream.binder.provisioning.SolaceEndpointProvisioner;
-import com.solace.spring.cloud.stream.binder.util.InitSession;
+import com.solace.spring.cloud.stream.binder.util.SessionInitializationMode;
 import com.solace.spring.cloud.stream.binder.util.SolaceSessionManager;
 import com.solacesystems.jcsmp.JCSMPException;
 import jakarta.annotation.PostConstruct;
@@ -42,7 +42,7 @@ public class SolaceMessageChannelBinderConfiguration {
 
 	@PostConstruct
 	public void init() throws JCSMPException {
-		if (InitSession.EAGER.equals(solaceBinderConfigurationProperties.getInitSession())) {
+		if (SessionInitializationMode.EAGER.equals(solaceBinderConfigurationProperties.getSessionInitializationMode())) {
 			LOGGER.debug("Eagerly initializing Solace session.");
 			solaceSessionManager.getSession();
 		} else {
