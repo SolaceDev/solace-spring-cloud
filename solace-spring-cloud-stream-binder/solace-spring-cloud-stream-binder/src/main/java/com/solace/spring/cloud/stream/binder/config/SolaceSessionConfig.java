@@ -5,6 +5,7 @@ import com.solace.spring.cloud.stream.binder.util.DefaultSolaceSessionManager;
 import com.solace.spring.cloud.stream.binder.util.SolaceSessionManager;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.SolaceSessionOAuth2TokenProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.Nullable;
@@ -13,6 +14,7 @@ import org.springframework.lang.Nullable;
 public class SolaceSessionConfig {
 
   @Bean
+  @ConditionalOnMissingBean
   public SolaceSessionManager solaceSessionManager(JCSMPProperties jcsmpProperties,
       @Nullable SolaceSessionEventHandler eventHandler,
       @Nullable SolaceSessionOAuth2TokenProvider solaceSessionOAuth2TokenProvider) {
