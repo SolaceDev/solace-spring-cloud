@@ -19,4 +19,14 @@ public class SolaceMeterAccessorTest {
         solaceMeterAccessor.recordMessage(bindingName, message);
         Mockito.verify(messageMeterBinder).recordMessage(bindingName, message);
     }
+
+    @Test
+    public void testRecordMessageProcessingDuration(@Mock SolaceMessageMeterBinder messageMeterBinder) {
+        SolaceMeterAccessor solaceMeterAccessor = new SolaceMeterAccessor(messageMeterBinder);
+        String bindingName = "test-binding";
+        Long messageDurationMilliseconds = 42L;
+
+        solaceMeterAccessor.recordMessageProcessingTimeDuration(bindingName, messageDurationMilliseconds);
+        Mockito.verify(messageMeterBinder).recordMessageProcessingTimeDuration(bindingName, messageDurationMilliseconds);
+    }
 }

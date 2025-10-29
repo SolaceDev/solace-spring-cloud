@@ -121,7 +121,11 @@ public class JCSMPInboundQueueMessageProducer extends MessageProducerSupport imp
         if (deliveryAttempt != null) {
             deliveryAttempt.incrementAndGet();
         }
+        long beforeMessageProcessing = System.nanoTime();
         sendMessage(message);
+        long afterMessageProcessing = System.nanoTime();
+        solaceMeterAccessor.ifPresent(meterAccessor -> meterAccessor.recordMessageProcessingTimeDuration(consumerProperties.getBindingName(),
+                (afterMessageProcessing - beforeMessageProcessing) / 1000));
     }
 
     public void onReceiveConcurrent(BytesXMLMessage bytesXMLMessageRaw) {
