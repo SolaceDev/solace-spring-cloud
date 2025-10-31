@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.4.0] - 2025-10-31
+### Changed
+- Added metric for message processing time on consuming binder side
+
 ## [7.3.0] - 2025-10-13
 ### Changed
 - Removed warning logs for message being in progress for too long
