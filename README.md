@@ -6,16 +6,19 @@ A Spring Cloud Stream Binder for Solace
 
 ## Table of contents
 
-* [Spring Cloud Version Compatibility](#spring-cloud-version-compatibility)
-* [Using it with Maven](#using-it-with-maven)
-* [Building Locally](#building-locally)
-* [Run Tests With An External Broker](#run-tests-with-an-external-broker)
-* [Run Tests on an external Docker](#run-tests-on-an-external-docker)
-* [Release Process](#release-process)
-* [Contributing](#contributing)
-* [Authors](#authors)
-* [License](#license)
-* [Support](#support)
+- [Spring Cloud Stream Binder for Solace](#spring-cloud-stream-binder-for-solace)
+  - [Overview](#overview)
+  - [Table of contents](#table-of-contents)
+  - [Spring Cloud Version Compatibility](#spring-cloud-version-compatibility)
+  - [Fork vs Original](#fork-vs-original)
+  - [Using it with Maven](#using-it-with-maven)
+  - [Documentation](#documentation)
+  - [Contributing](#contributing)
+  - [Authors](#authors)
+  - [License](#license)
+  - [Code of Conduct](#code-of-conduct)
+  - [Support](#support)
+  - [Links](#links)
 
 ---
 
@@ -25,6 +28,7 @@ Consult the table below to determine which version of the BOM you need to use:
 
 | Spring Cloud | Spring Cloud Stream Binder Solace | Spring Boot | sol-jcsmp |
 |--------------|-----------------------------------|-------------|-----------|
+| 2025.0.0     | 7.4.1                             | 3.5.8       | 10.29.0   |
 | 2025.0.0     | 7.4.0                             | 3.5.5       | 10.28.1   |
 | 2025.0.0     | 7.3.0                             | 3.5.5       | 10.28.1   |
 | 2025.0.0     | 7.2.2                             | 3.5.5       | 10.28.1   |
@@ -74,7 +78,7 @@ Check out the difference between this fork and the original solace spring cloud 
     <dependency>
         <groupId>ch.sbb</groupId>
         <artifactId>spring-cloud-stream-binder-solace</artifactId>
-        <version>7.2.2</version>
+        <version>7.4.1</version>
     </dependency>
 </dependencies>
 ```
