@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.4.3] - [7.4.1] - 2025-12-08
+### Changed
+- Update dependencies
+
 ## [7.4.0] - 2025-10-31
 ### Changed
 - Added metric for message processing time on consuming binder side
