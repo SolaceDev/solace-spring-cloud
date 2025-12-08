@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder.config;
 
-import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
+import community.solace.spring.boot.starter.solaceclientconfig.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.SolaceMessageChannelBinder;
 import com.solace.spring.cloud.stream.binder.config.autoconfigure.JCSMPSessionConfiguration;
 import com.solace.spring.cloud.stream.binder.properties.SolaceExtendedBindingProperties;

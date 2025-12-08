@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder;
 
-import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
+import community.solace.spring.boot.starter.solaceclientconfig.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.config.SolaceHealthIndicatorsConfiguration;
 import com.solace.spring.cloud.stream.binder.health.SolaceBinderHealthAccessor;
 import com.solace.spring.cloud.stream.binder.health.contributors.BindingsHealthContributor;

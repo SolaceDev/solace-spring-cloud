@@ -1,6 +1,6 @@
 package com.solace.spring.cloud.stream.binder;
 
-import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
+import community.solace.spring.boot.starter.solaceclientconfig.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.test.junit.extension.SpringCloudStreamExtension;
 import com.solace.spring.cloud.stream.binder.test.spring.SpringCloudStreamContext;
